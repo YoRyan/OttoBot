@@ -8,7 +8,7 @@ open System.Runtime.InteropServices
 open System.Web
 
 
-type public PublicModule(services: IServiceProvider) =
+type public PublicModule(services: IServiceProvider, commands: CommandService) =
 
     inherit ModuleBase<SocketCommandContext>()
 
@@ -19,6 +19,80 @@ type public PublicModule(services: IServiceProvider) =
     member private this.Context() =
         base.Context
         
+    [<Command("help")>]
+    [<Summary("Get help with this bot, or with a command if specified.")>]
+    member this.Help
+        (
+            [<Optional>]
+            [<DefaultParameterValue("")>]
+            [<Summary("Get help for a specific command.")>]
+            command: string
+        )
+        =
+        FSharp.toUnitTask this._Help command
+
+    member private this._Help(command) =
+        async {
+            let ctx = this.Context()
+
+            let singleHelp (cmd: CommandInfo) =
+                async {
+                    let oneParam (param: ParameterInfo) =
+                        if param.IsOptional then $"[{param.Name}]"
+                        else $"<{param.Name}>"
+                    let allParams = Seq.map oneParam cmd.Parameters |> String.concat " "
+
+                    let nameLength =
+                        Seq.max
+                            (
+                                Seq.map
+                                    (fun (param: ParameterInfo) -> param.Name.Length)
+                                    cmd.Parameters
+                            )
+
+                    let lines =
+                        Seq.map
+                            (fun (param: ParameterInfo) ->
+                                $"{param.Name.PadRight(nameLength, ' ')} : {param.Summary}")
+                            cmd.Parameters
+                        |> String.concat "\n"
+
+                    do! ctx.Channel.SendMessageAsync($"arguments: `{allParams}`\n```{lines}```")
+                        |> Async.AwaitTask
+                        |> FSharp.ensureSuccess
+                }
+
+            let allHelp =
+                async {
+                    let nameLength =
+                        Seq.max
+                            (
+                                Seq.map
+                                    (fun (cmd: CommandInfo) -> cmd.Name.Length)
+                                    commands.Commands
+                            )
+
+                    let lines =
+                        Seq.map
+                            (fun (cmd: CommandInfo) ->
+                                $"{cmd.Name.PadRight(nameLength, ' ')} : {cmd.Summary}")
+                            commands.Commands
+                        |> String.concat "\n"
+
+                    do! ctx.Channel.SendMessageAsync($"Here are my commands:\n```{lines}```")
+                        |> Async.AwaitTask
+                        |> FSharp.ensureSuccess
+                }
+
+            let aliases (cmd: CommandInfo) =
+                Seq.map (fun a -> (a, cmd)) cmd.Aliases
+            let map = Map (Seq.collect aliases commands.Commands)
+
+            do! match map.TryFind command with
+                | Some cmd -> singleHelp cmd
+                | None -> allHelp
+        }
+
     [<Command("ping")>]
     [<Summary("Run a welfare check.")>]
     member this.PingPong() =
@@ -92,7 +166,7 @@ type public PublicModule(services: IServiceProvider) =
         =
         FSharp.toUnitTask this._StockChart (symbol, period)
 
-    member this._StockChart(symbol: string, period: string) =
+    member this._StockChart(symbol, period) =
         async {
             let invPeriod = String.map Char.ToLowerInvariant period
             let time =
