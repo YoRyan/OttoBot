@@ -22,7 +22,7 @@ type public PublicModule(services: IServiceProvider) =
     [<Command("ping")>]
     [<Summary("Run a welfare check.")>]
     member this.PingPong() =
-        FSharp.toUnitTask this._PingPong
+        FSharp.toUnitTask this._PingPong ()
 
     member private this._PingPong() =
         async {
@@ -41,7 +41,7 @@ type public PublicModule(services: IServiceProvider) =
             text: string
         )
         =
-        FSharp.toUnitTask this._SpongeBob
+        FSharp.toUnitTask this._SpongeBob text
 
     member private this._SpongeBob(text: string) =
         async {
@@ -80,7 +80,7 @@ type public PublicModule(services: IServiceProvider) =
             period: string
         )
         =
-        FSharp.toUnitTask this._StockChart
+        FSharp.toUnitTask this._StockChart (symbol, period)
 
     member this._StockChart(symbol: string, period: string) =
         async {
