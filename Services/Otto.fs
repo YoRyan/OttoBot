@@ -24,18 +24,14 @@ type Otto(services: IServiceProvider) =
                     um.HasCharPrefix(prefix, &pos)
                     || um.HasMentionPrefix(client.CurrentUser, &pos)
                 )
-            if mention && not um.Author.IsBot then Some Command else None
+            if mention && not um.Author.IsBot then Some pos else None
 
         async {
             match msg with
             | :? SocketUserMessage as uMsg ->
                 match uMsg with
-                | Command ->
+                | Command pos ->
                     let ctx = new SocketCommandContext(client, uMsg)
-
-                    let mutable pos = 0
-                    uMsg.HasCharPrefix(prefix, &pos) |> ignore
-
                     do! commands.ExecuteAsync(ctx, pos, services)
                         |> Async.AwaitTask
                         |> FSharp.ensureSuccess
