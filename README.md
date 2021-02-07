@@ -1,4 +1,4 @@
-# Otto Bot
+# Otto the F# Bot
 
 This is a personal Discord bot of mine written using F# and [Discord.Net](https://github.com/discord-net/Discord.Net). Although it is not a public bot, I have open-sourced it so that it might help other programmers write their own F# bots.
 
