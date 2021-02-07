@@ -45,14 +45,20 @@ type public PublicModule(services: IServiceProvider) =
 
     member private this._SpongeBob(text: string) =
         async {
-            let upper c =
+            let isUpper c =
                 let i = int c
-                if i >= 97 && i < 123 then char (i - 32)
+                i >= 65 && i < 91
+
+            let isLower c =
+                let i = int c
+                i >= 97 && i < 123
+
+            let upper c =
+                if isLower c then char (int c - 32)
                 else c
 
             let lower c =
-                let i = int c
-                if i >= 65 && i < 91 then char (i + 32)
+                if isUpper c then char (int c + 32)
                 else c
 
             let mutable altUpper = true
@@ -60,9 +66,13 @@ type public PublicModule(services: IServiceProvider) =
                 altUpper <- not altUpper
                 if altUpper then upper c
                 else lower c
+
+            let alternateLetters c =
+                if isUpper c || isLower c then alternate c
+                else c
                 
             let ctx = this.Context()
-            do! ctx.Channel.SendMessageAsync(String.map alternate text)
+            do! ctx.Channel.SendMessageAsync(String.map alternateLetters text)
                 |> Async.AwaitTask
                 |> FSharp.ensureSuccess
         }
