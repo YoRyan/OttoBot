@@ -18,19 +18,20 @@ type public PublicModule(services: IServiceProvider) =
     /// Use to access 'base.Context', which is normally inaccessible from public methods.
     member private this.Context() =
         base.Context
-
+        
     [<Command("ping")>]
     [<Summary("Run a welfare check.")>]
     member this.PingPong() =
-        let ctx = this.Context()
-        let cmd () =
-            async {
-                do! ctx.Channel.SendMessageAsync("Pong!")
-                    |> Async.AwaitTask
-                    |> FSharp.ensureSuccess
-            }
-        FSharp.toUnitTask cmd ()
+        FSharp.toUnitTask this._PingPong
 
+    member private this._PingPong() =
+        async {
+            let ctx = this.Context()
+            do! ctx.Channel.SendMessageAsync("Pong!")
+                |> Async.AwaitTask
+                |> FSharp.ensureSuccess
+        }
+        
     [<Command("bob")>]
     [<Summary("Write sPoNgEbOb tExT!")>]
     member this.SpongeBob
@@ -40,77 +41,79 @@ type public PublicModule(services: IServiceProvider) =
             text: string
         )
         =
-        let ctx = this.Context()
-        let cmd () =
-            async {
-                let upper c =
-                    let i = int c
-                    if i >= 97 && i < 123 then char (i - 32)
-                    else c
+        FSharp.toUnitTask this._SpongeBob
 
-                let lower c =
-                    let i = int c
-                    if i >= 65 && i < 91 then char (i + 32)
-                    else c
+    member private this._SpongeBob(text: string) =
+        async {
+            let upper c =
+                let i = int c
+                if i >= 97 && i < 123 then char (i - 32)
+                else c
 
-                let mutable altUpper = true
-                let alternate c =
-                    altUpper <- not altUpper
-                    if altUpper then upper c
-                    else lower c
+            let lower c =
+                let i = int c
+                if i >= 65 && i < 91 then char (i + 32)
+                else c
 
-                do! ctx.Channel.SendMessageAsync(String.map alternate text)
-                    |> Async.AwaitTask
-                    |> FSharp.ensureSuccess
-            }
-        FSharp.toUnitTask cmd ()
-
+            let mutable altUpper = true
+            let alternate c =
+                altUpper <- not altUpper
+                if altUpper then upper c
+                else lower c
+                
+            let ctx = this.Context()
+            do! ctx.Channel.SendMessageAsync(String.map alternate text)
+                |> Async.AwaitTask
+                |> FSharp.ensureSuccess
+        }
+        
     [<Command("stonk")>]
     [<Summary("Tally your losses.")>]
     member this.StockChart
         (
             [<Summary("The stock ticker. Must be available on BigCharts.")>]
             symbol: string,
-
+        
             [<Optional>]
             [<DefaultParameterValue("")>]
             [<Summary("Specify one of day, week, month, or year. Defaults to week.")>]
             period: string
         )
         =
-        let ctx = this.Context()
-        let cmd () =
-            async {
-                let invPeriod = String.map Char.ToLowerInvariant period
-                let time =
-                    match invPeriod with
-                    | "day" -> "1"
-                    | "month" -> "5"
-                    | "year" -> "8"
-                    | "week" | _ -> "3"
-                let freq =
-                    match invPeriod with
-                    | "day" -> "7"
-                    | "month" -> "1"
-                    | "year" -> "2"
-                    | "week" | _ -> "8"
+        FSharp.toUnitTask this._StockChart
 
-                let qs = HttpUtility.ParseQueryString String.Empty
-                qs.Add("symb", symbol)
-                qs.Add("type", "4")
-                qs.Add("style", "330")
-                qs.Add("time", time)
-                qs.Add("freq", freq)
+    member this._StockChart(symbol: string, period: string) =
+        async {
+            let invPeriod = String.map Char.ToLowerInvariant period
+            let time =
+                match invPeriod with
+                | "day" -> "1"
+                | "month" -> "5"
+                | "year" -> "8"
+                | "week" | _ -> "3"
+            let freq =
+                match invPeriod with
+                | "day" -> "7"
+                | "month" -> "1"
+                | "year" -> "2"
+                | "week" | _ -> "8"
 
-                let! response =
-                    http.GetAsync($"https://api.wsj.net/api/kaavio/charts/big.chart?{qs}")
-                    |> Async.AwaitTask
-                response.EnsureSuccessStatusCode() |> ignore
+            let qs = HttpUtility.ParseQueryString String.Empty
+            qs.Add("symb", symbol)
+            qs.Add("type", "4")
+            qs.Add("style", "330")
+            qs.Add("time", time)
+            qs.Add("freq", freq)
 
-                let stream = response.Content.ReadAsStreamAsync() |> Async.AwaitTask
-                let filename = $"{symbol}_{DateTime.UtcNow:yyyyMMdd_HHmm}_{time}.gif"
-                do! ctx.Channel.SendFileAsync(stream |> Async.RunSynchronously, filename)
-                    |> Async.AwaitTask
-                    |> FSharp.ensureSuccess
-            }
-        FSharp.toUnitTask cmd ()
+            let! response =
+                http.GetAsync($"https://api.wsj.net/api/kaavio/charts/big.chart?{qs}")
+                |> Async.AwaitTask
+            response.EnsureSuccessStatusCode() |> ignore
+            
+            let ctx = this.Context()
+            let stream = response.Content.ReadAsStreamAsync() |> Async.AwaitTask
+            let filename = $"{symbol}_{DateTime.UtcNow:yyyyMMdd_HHmm}_{time}.gif"
+            do! ctx.Channel.SendFileAsync(stream |> Async.RunSynchronously, filename)
+                |> Async.AwaitTask
+                |> FSharp.ensureSuccess
+        }
