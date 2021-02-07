@@ -39,7 +39,7 @@ module Bot =
             let client = services.GetRequiredService<DiscordSocketClient>()
             client.add_Log
                 (
-                    FSharp.FuncHelpers.ToUnitDelegate<LogMessage> log
+                    FSharp.Helpers.ToUnitDelegate<LogMessage> log
                 )
 
             let token = Environment.GetEnvironmentVariable("DISCORD_TOKEN")
@@ -49,6 +49,7 @@ module Bot =
             let bot = services.GetRequiredService<Otto>()
             do! bot.InitializeAsync()
 
+            // TODO: Listen for SIGINT and perform a graceful shutdown.
             do! waitIndefinitely()
         }
         |> Async.RunSynchronously

@@ -10,12 +10,12 @@ open System.Reflection
 
 type Otto(services: IServiceProvider) =
 
+    let prefix = '.'
     let commands = services.GetRequiredService<CommandService>()
     let client = services.GetRequiredService<DiscordSocketClient>()
 
+    /// Parse messages and dispatch commands.
     let handleCommandAsync (msg: SocketMessage) =
-        let prefix = '.'
-
         let (|Command|_|) (um: SocketUserMessage) =
             let mutable pos = 0
             let mention =
@@ -43,6 +43,7 @@ type Otto(services: IServiceProvider) =
             | _ -> ()
         }
 
+    /// Send a notification in the event of an exception.
     let commandExecutedAsync (command: Optional<CommandInfo>, ctx: ICommandContext, result: IResult) =
         async {
             if command.IsSpecified && not result.IsSuccess then
@@ -51,15 +52,16 @@ type Otto(services: IServiceProvider) =
                 |> ignore
         }
 
+    /// Attach delegates and load modules.
     member this.InitializeAsync() =
         async {
             client.add_MessageReceived
                 (
-                    FSharp.FuncHelpers.ToUnitDelegate<SocketMessage> handleCommandAsync
+                    FSharp.Helpers.ToUnitDelegate<SocketMessage> handleCommandAsync
                 )
             commands.add_CommandExecuted
                 (
-                    FSharp.FuncHelpers.ToUnitDelegate<Optional<CommandInfo>, ICommandContext, IResult> commandExecutedAsync
+                    FSharp.Helpers.ToUnitDelegate<Optional<CommandInfo>, ICommandContext, IResult> commandExecutedAsync
                 )
 
             do! commands.AddModulesAsync(Assembly.GetEntryAssembly(), services)

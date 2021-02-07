@@ -12,8 +12,10 @@ type public PublicModule(services: IServiceProvider) =
 
     inherit ModuleBase<SocketCommandContext>()
 
+    /// Use to make HTTP requests.
     let http = services.GetRequiredService<HttpClient>()
 
+    /// Use to access 'base.Context', which is normally inaccessible from public methods.
     member private this.Context() =
         base.Context
 
