@@ -15,7 +15,7 @@ type public PublicModule(services: IServiceProvider, commands: CommandService) =
     /// Use to make HTTP requests.
     let http = services.GetRequiredService<HttpClient>()
 
-    /// Use to access 'base.Context', which is normally inaccessible from public methods.
+    /// Use to access 'base.Context', which is normally inaccessible from async computation expressions.
     member private this.Context() =
         base.Context
         
