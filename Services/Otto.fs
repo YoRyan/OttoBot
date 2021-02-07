@@ -17,16 +17,16 @@ type Otto(services: IServiceProvider) =
 
     /// Parse messages and dispatch commands.
     let handleCommandAsync (msg: SocketMessage) =
-        let (|Command|_|) (um: SocketUserMessage) =
-            let mutable pos = 0
-            let mention =
-                (
-                    um.HasCharPrefix(prefix, &pos)
-                    || um.HasMentionPrefix(client.CurrentUser, &pos)
-                )
-            if mention && not um.Author.IsBot then Some pos else None
-
         async {
+            let (|Command|_|) (um: SocketUserMessage) =
+                let mutable pos = 0
+                let mention =
+                    (
+                        um.HasCharPrefix(prefix, &pos)
+                        || um.HasMentionPrefix(client.CurrentUser, &pos)
+                    )
+                if mention && not um.Author.IsBot then Some pos else None
+
             match msg with
             | :? SocketUserMessage as uMsg ->
                 match uMsg with
