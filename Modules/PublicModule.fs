@@ -42,44 +42,28 @@ type public PublicModule(services: IServiceProvider, commands: CommandService) =
                         else $"<{param.Name}>"
                     let allParams = Seq.map oneParam cmd.Parameters |> String.concat " "
 
-                    let nameLength =
-                        Seq.max
-                            (
-                                Seq.map
-                                    (fun (param: ParameterInfo) -> param.Name.Length)
-                                    cmd.Parameters
-                            )
+                    let table =
+                        seq {
+                            for param in cmd.Parameters do
+                                yield Discord.TableRow.Data([ param.Name; param.Summary ])
+                        }
+                        |> Discord.makeTable "-" " : "
 
-                    let lines =
-                        Seq.map
-                            (fun (param: ParameterInfo) ->
-                                $"{param.Name.PadRight(nameLength, ' ')} : {param.Summary}")
-                            cmd.Parameters
-                        |> String.concat "\n"
-
-                    do! ctx.Channel.SendMessageAsync($"arguments: `{allParams}`\n```{lines}```")
+                    do! ctx.Channel.SendMessageAsync($"arguments: `{allParams}`\n{table}")
                         |> Async.AwaitTask
                         |> FSharp.ensureSuccess
                 }
 
             let allHelp =
                 async {
-                    let nameLength =
-                        Seq.max
-                            (
-                                Seq.map
-                                    (fun (cmd: CommandInfo) -> cmd.Name.Length)
-                                    commands.Commands
-                            )
+                    let table =
+                        seq {
+                            for cmd in commands.Commands do
+                                yield Discord.TableRow.Data([ cmd.Name; cmd.Summary ])
+                        }
+                        |> Discord.makeTable "-" " : "
 
-                    let lines =
-                        Seq.map
-                            (fun (cmd: CommandInfo) ->
-                                $"{cmd.Name.PadRight(nameLength, ' ')} : {cmd.Summary}")
-                            commands.Commands
-                        |> String.concat "\n"
-
-                    do! ctx.Channel.SendMessageAsync($"Here are my commands:\n```{lines}```")
+                    do! ctx.Channel.SendMessageAsync($"Here are my commands:\n{table}")
                         |> Async.AwaitTask
                         |> FSharp.ensureSuccess
                 }
