@@ -7,6 +7,8 @@
 
   <ItemGroup>
     <Compile Include="FSharp.fs" />
+    <Compile Include="Discord.fs" />
+    <Compile Include="Modules\FlightsModule.fs" />
     <Compile Include="Modules\PublicModule.fs" />
     <Compile Include="Services\Otto.fs" />
     <Compile Include="Program.fs" />
@@ -14,6 +16,7 @@
 
   <ItemGroup>
     <PackageReference Include="Discord.Net" Version="2.3.0" />
+    <PackageReference Include="FSharp.Data" Version="3.3.3" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />
   </ItemGroup>
 

@@ -6,7 +6,10 @@ The bot is structured similarly to a normal Discord.Net bot, just with F# instea
 
 ![](https://upload.wikimedia.org/wikipedia/en/d/da/Airplane_screenshot_Haggerty_Nielsen.jpg)
 
-To run Otto, supply the bot's API token in the `DISCORD_TOKEN` environment variable.
+To run Otto, supply the following environment variables:
+
+* `DISCORD_TOKEN`: The API token for Discord.
+* `AVSTACK_KEY`: The API key for Aviation Stack. Needed for the airport arrivals command.
 
 ### License
 
