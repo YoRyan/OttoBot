@@ -50,21 +50,12 @@ module FSharp =
 
         /// Cast an F# asynchronous function to a C# Task delegate.
         static member ToUnitDelegate<'a> (comp: 'a -> Async<unit>) =
-            Func<'a, Task>
-                (
-                    toUnitTask comp
-                )
+            Func<'a, Task>(toUnitTask comp)
                 
         /// Cast an F# asynchronous function to a C# Task delegate.
         static member ToUnitDelegate<'a, 'b> (comp: 'a * 'b -> Async<unit>) =
-            Func<'a, 'b, Task>
-                (
-                    fun a b -> toUnitTask comp (a, b)
-                )
+            Func<'a, 'b, Task>(fun a b -> toUnitTask comp (a, b))
             
         /// Cast an F# asynchronous function to a C# Task delegate.
         static member ToUnitDelegate<'a, 'b, 'c> (comp: 'a * 'b * 'c -> Async<unit>) =
-            Func<'a, 'b, 'c, Task>
-                (
-                    fun a b c -> toUnitTask comp (a, b, c)
-                )
+            Func<'a, 'b, 'c, Task>(fun a b c -> toUnitTask comp (a, b, c))
