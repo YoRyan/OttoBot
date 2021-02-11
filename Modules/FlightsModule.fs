@@ -56,7 +56,7 @@ module FlightsModule =
                             | Some head -> head.InnerText()
                             | None -> ""
                         let rows =
-                            List.filter
+                            Seq.filter
                                 (fun (el: HtmlNode) -> el.Name() = "tr")
                                 (table.Elements())
                         (summary, Seq.choose parseFlight rows)
