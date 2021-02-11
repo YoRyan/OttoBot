@@ -74,9 +74,9 @@ module FlightsModule =
                                 Discord.TableRow.Data
                                     (
                                         [ flight.Ident;
-                                            flight.Aircraft;
-                                            flight.Origin;
-                                            flight.Estimated ]
+                                          flight.Aircraft;
+                                          flight.Origin;
+                                          flight.Estimated ]
                                     )
                             )
                             flights
