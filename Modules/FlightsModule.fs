@@ -49,20 +49,18 @@ module FlightsModule =
                                   Estimated = cells.[5].InnerText() }
                     
                 let parseAllFlights (doc: HtmlDocument) =
-                    let table = Seq.tryHead (doc.CssSelect(".prettyTable"))
-                    let rows =
-                        match table with
-                        | Some tbl ->
-                            List.filter (fun (el: HtmlNode) -> el.Name() = "tr") (tbl.Elements())
-                        | None -> []
-                    match rows with
-                    | [] -> ("No Data", Seq.empty)
-                    | rows ->
+                    match Seq.tryHead (doc.CssSelect(".prettyTable")) with
+                    | Some table ->
                         let summary =
-                            match Seq.tryHead (table.Value.CssSelect("h1")) with
+                            match Seq.tryHead (table.CssSelect("h1")) with
                             | Some head -> head.InnerText()
                             | None -> ""
+                        let rows =
+                            List.filter
+                                (fun (el: HtmlNode) -> el.Name() = "tr")
+                                (table.Elements())
                         (summary, Seq.choose parseFlight rows)
+                    | None -> ("No Data", Seq.empty)
 
                 let! doc = HtmlDocument.AsyncLoad $"https://flightaware.com/live/airport/{icao}/enroute"
                 let summary, flights = parseAllFlights doc
