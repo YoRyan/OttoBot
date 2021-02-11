@@ -65,7 +65,7 @@ module FlightsModule =
                 
                 let makeTable flights =
                     seq {
-                        yield Discord.TableRow.Data(fields = [ "Flight"; "Type"; "From"; "ETA" ])
+                        yield Discord.TableRow.Data([ "Flight"; "Type"; "From"; "ETA" ])
                         yield Discord.TableRow.Separator
                         yield!
                             Seq.map
