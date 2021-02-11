@@ -2,25 +2,16 @@
 
 open Discord.Commands
 open FSharp.Data
-open FSharp.Data.JsonExtensions
-open System
-open System.Web
 
 
 module FlightsModule =
 
-    type Aircraft =
-        { Type: string
-          Registration: string }
-
     type Flight =
-        { Departure: string
-          Airline: string
-          Number: string
-          Aircraft: Aircraft option
-          Scheduled: DateTime
-          Estimated: DateTime }
-          
+        { Origin: string
+          Ident: string
+          Aircraft: string
+          Estimated: string }
+
     let numFlights = 10
         
     type public Module() =
@@ -43,59 +34,57 @@ module FlightsModule =
 
         member private this._AirportArrivals(icao) =
             async {
-                let parse (record: JsonValue) =
-                    let arrival = record?arrival
-                    let aircraft = record?aircraft
-                    {
-                        Departure = record?departure?icao.AsString()
-                        Airline = record?airline?name.AsString()
-                        Number = record?flight?number.AsString()
-                        Aircraft =
-                            match aircraft with
-                            | JsonValue.Record _ ->
-                                Some {
-                                    Type = aircraft?icao.AsString()
-                                    Registration = aircraft?registration.AsString()
-                                }
-                            | _ -> None
-                        Scheduled = arrival?scheduled.AsDateTime()
-                        Estimated = arrival?estimated.AsDateTime()
-                    }
+                let parseFlight (row: HtmlNode) =
+                    let linkText (el: HtmlNode) =
+                        match el.CssSelect("a") with
+                        | []        -> ""
+                        | link :: _ -> link.InnerText()
 
-                let qs = HttpUtility.ParseQueryString String.Empty
-                qs.Add("access_key", Environment.GetEnvironmentVariable("AVSTACK_KEY"))
-                qs.Add("flight_status", "active")
-                qs.Add("arr_icao", icao)
-                let url = $"http://api.aviationstack.com/v1/flights?{qs}"
+                    let cells = row.CssSelect("td")
+                    match cells.[4].InnerText() with
+                    | "" -> None
+                    | _  -> Some { Origin = linkText cells.[2]
+                                   Ident = linkText cells.[0]
+                                   Aircraft = linkText cells.[1]
+                                   Estimated = cells.[5].InnerText() }
+                    
+                let parseAllFlights (doc: HtmlDocument) =
+                    let noData = "No Data"
+                    match doc.CssSelect(".prettyTable > tr") with
+                    | [] -> (noData, Seq.empty)
+                    | rows ->
+                        let summary =
+                            match doc.CssSelect(".prettyTable h1") with
+                            | [] -> noData
+                            | head :: _ -> head.InnerText()
+                        let flights = Seq.choose parseFlight rows
+                        (summary, flights)
 
-                let allFlights =
-                    Seq.sortBy
-                        (fun flight -> flight.Estimated)
-                        (Seq.map parse ((JsonValue.Load url)?data.AsArray()))
-                let latestFlights = Seq.truncate numFlights allFlights
+                let! doc = HtmlDocument.AsyncLoad $"https://flightaware.com/live/airport/{icao}/enroute"
+                let summary, flights = parseAllFlights doc
                 
-                let table =
+                let makeTable flights =
                     seq {
-                        yield Discord.TableRow.Data(fields = [ "From"; "Flight"; "ETA"; "Type" ])
+                        yield Discord.TableRow.Data(fields = [ "Flight"; "Type"; "From"; "ETA" ])
                         yield Discord.TableRow.Separator
-
-                        for flight in latestFlights do
-                            let aircraft =
-                                match flight.Aircraft with
-                                | Some(ac) -> ac.Type
-                                | None -> ""
-                            yield Discord.TableRow.Data
-                                (
-                                    [ flight.Departure;
-                                      $"{flight.Airline} {flight.Number}";
-                                      flight.Estimated.ToString("M/d HH:mm");
-                                      aircraft ]
+                        yield!
+                            Seq.map
+                                (fun flight ->
+                                    Discord.TableRow.Data
+                                        (
+                                            [ flight.Ident;
+                                              flight.Aircraft;
+                                              flight.Origin;
+                                              flight.Estimated ]
+                                        )
                                 )
+                                flights
                     }
                     |> Discord.makeTable "-" " | "
+                let table = makeTable (Seq.truncate numFlights flights)
 
                 let ctx = this.Context()
-                do! ctx.Channel.SendMessageAsync($"Incoming flights at {icao.ToUpper()}:\n{table}")
+                do! ctx.Channel.SendMessageAsync($"{summary}:\n{table}")
                     |> Async.AwaitTask
                     |> FSharp.ensureSuccess
             }
