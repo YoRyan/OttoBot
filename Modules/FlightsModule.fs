@@ -36,9 +36,9 @@ module FlightsModule =
             async {
                 let parseFlight (row: HtmlNode) =
                     let linkText (el: HtmlNode) =
-                        match el.CssSelect("a") with
-                        | []        -> ""
-                        | link :: _ -> link.InnerText()
+                        match Seq.tryHead (el.CssSelect("a")) with
+                        | Some link -> link.InnerText()
+                        | None      -> ""
 
                     let cells = row.CssSelect("td")
                     match cells.[4].InnerText() with
@@ -49,16 +49,20 @@ module FlightsModule =
                                    Estimated = cells.[5].InnerText() }
                     
                 let parseAllFlights (doc: HtmlDocument) =
-                    let noData = "No Data"
-                    match doc.CssSelect(".prettyTable > tr") with
-                    | [] -> (noData, Seq.empty)
+                    let table = Seq.tryHead (doc.CssSelect(".prettyTable"))
+                    let rows =
+                        match table with
+                        | Some tbl ->
+                            List.filter (fun (el: HtmlNode) -> el.Name() = "tr") (tbl.Elements())
+                        | None     -> []
+                    match rows with
+                    | []   -> ("No Data", Seq.empty)
                     | rows ->
                         let summary =
-                            match doc.CssSelect(".prettyTable h1") with
-                            | [] -> noData
-                            | head :: _ -> head.InnerText()
-                        let flights = Seq.choose parseFlight rows
-                        (summary, flights)
+                            match Seq.tryHead (table.Value.CssSelect("h1")) with
+                            | Some head -> head.InnerText()
+                            | None      -> ""
+                        (summary, Seq.choose parseFlight rows)
 
                 let! doc = HtmlDocument.AsyncLoad $"https://flightaware.com/live/airport/{icao}/enroute"
                 let summary, flights = parseAllFlights doc
@@ -67,18 +71,17 @@ module FlightsModule =
                     seq {
                         yield Discord.TableRow.Data([ "Flight"; "Type"; "From"; "ETA" ])
                         yield Discord.TableRow.Separator
-                        yield!
-                            Seq.map
-                                (fun flight ->
-                                    Discord.TableRow.Data
-                                        (
-                                            [ flight.Ident;
-                                              flight.Aircraft;
-                                              flight.Origin;
-                                              flight.Estimated ]
-                                        )
-                                )
-                                flights
+                        yield! Seq.map
+                            (fun flight ->
+                                Discord.TableRow.Data
+                                    (
+                                        [ flight.Ident;
+                                            flight.Aircraft;
+                                            flight.Origin;
+                                            flight.Estimated ]
+                                    )
+                            )
+                            flights
                     }
                     |> Discord.makeTable "-" " | "
                 let table = makeTable (Seq.truncate numFlights flights)
