@@ -38,15 +38,15 @@ module FlightsModule =
                     let linkText (el: HtmlNode) =
                         match Seq.tryHead (el.CssSelect("a")) with
                         | Some link -> link.InnerText()
-                        | None      -> ""
+                        | None -> ""
 
                     let cells = row.CssSelect("td")
                     match cells.[4].InnerText() with
                     | "" -> None
-                    | _  -> Some { Origin = linkText cells.[2]
-                                   Ident = linkText cells.[0]
-                                   Aircraft = linkText cells.[1]
-                                   Estimated = cells.[5].InnerText() }
+                    | _ -> Some { Origin = linkText cells.[2]
+                                  Ident = linkText cells.[0]
+                                  Aircraft = linkText cells.[1]
+                                  Estimated = cells.[5].InnerText() }
                     
                 let parseAllFlights (doc: HtmlDocument) =
                     let table = Seq.tryHead (doc.CssSelect(".prettyTable"))
@@ -54,14 +54,14 @@ module FlightsModule =
                         match table with
                         | Some tbl ->
                             List.filter (fun (el: HtmlNode) -> el.Name() = "tr") (tbl.Elements())
-                        | None     -> []
+                        | None -> []
                     match rows with
-                    | []   -> ("No Data", Seq.empty)
+                    | [] -> ("No Data", Seq.empty)
                     | rows ->
                         let summary =
                             match Seq.tryHead (table.Value.CssSelect("h1")) with
                             | Some head -> head.InnerText()
-                            | None      -> ""
+                            | None -> ""
                         (summary, Seq.choose parseFlight rows)
 
                 let! doc = HtmlDocument.AsyncLoad $"https://flightaware.com/live/airport/{icao}/enroute"
