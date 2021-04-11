@@ -1,12 +1,15 @@
 ﻿namespace OttoBot
 
 open Discord.Commands
+open System
 open System.Runtime.InteropServices
 
 
 type public PublicModule(commands: CommandService) =
 
     inherit ModuleBase<SocketCommandContext>()
+
+    let rng = new Random()
 
     /// Use to access 'base.Context', which is normally inaccessible from async computation expressions.
     member private this.Context() =
@@ -124,6 +127,27 @@ type public PublicModule(commands: CommandService) =
                 
             let ctx = this.Context()
             do! ctx.Channel.SendMessageAsync(String.map alternateLetters text)
+                |> Async.AwaitTask
+                |> FSharp.ensureSuccess
+        }
+
+    [<Command("roll")>]
+    [<Summary("Roll an n-sided die.")>]
+    member this.Roll
+        (
+            [<Optional>]
+            [<DefaultParameterValue(6)>]
+            [<Summary("Specify the number of sides.")>]
+            sides: int
+        )
+        =
+        FSharp.toUnitTask this._Roll sides
+
+    member private this._Roll(sides: int) =
+        async {
+            let res = rng.Next(1, sides)
+            let ctx = this.Context()
+            do! ctx.Channel.SendMessageAsync($"This {sides}-sided die rolls a **{res}**!")
                 |> Async.AwaitTask
                 |> FSharp.ensureSuccess
         }
