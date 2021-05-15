@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="FSharp.fs" />
     <Compile Include="Discord.fs" />
+    <Compile Include="Modules\Wargame.fs" />
     <Compile Include="Modules\StocksModule.fs" />
     <Compile Include="Modules\FlightsModule.fs" />
     <Compile Include="Modules\PublicModule.fs" />
