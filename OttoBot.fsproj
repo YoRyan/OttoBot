@@ -17,9 +17,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Discord.Net" Version="2.3.0" />
-    <PackageReference Include="FSharp.Data" Version="3.3.3" />
+    <PackageReference Include="Discord.Net" Version="2.4.0" />
+    <PackageReference Include="FSharp.Data" Version="4.1.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="5.0.1" />
   </ItemGroup>
 
 </Project>
