@@ -11,7 +11,7 @@ open System.Reflection
 
 type Otto(services: IServiceProvider) =
 
-    let prefix = '.'
+    let prefix = '/'
     let commands = services.GetRequiredService<CommandService>()
     let client = services.GetRequiredService<DiscordSocketClient>()
 
