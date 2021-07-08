@@ -73,7 +73,7 @@ type public PublicModule(commands: CommandService) =
                 | None -> allHelp
         }
 
-    [<Command("ping")>]
+    [<Command("ottoping")>] // temporary name until we get slash commands so we can avoid conflicts
     [<Summary("Run a welfare check.")>]
     member this.PingPong() =
         FSharp.toUnitTask this._PingPong ()
@@ -81,7 +81,7 @@ type public PublicModule(commands: CommandService) =
     member private this._PingPong() =
         async {
             let ctx = this.Context()
-            do! ctx.Channel.SendMessageAsync("Pong!")
+            do! ctx.Channel.SendMessageAsync($"Pong!\nSocket latency: {ctx.Client.Latency} ms")
                 |> Async.AwaitTask
                 |> FSharp.ensureSuccess
         }
