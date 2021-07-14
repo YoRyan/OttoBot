@@ -2,6 +2,7 @@
 
 open Discord.Commands
 open System
+open System.Runtime.InteropServices
 open System.Text
 
 type public WargameModule(commands: CommandService) =
@@ -14,13 +15,20 @@ type public WargameModule(commands: CommandService) =
 
     [<Command("ops")>]
     [<Summary("Avengers, assemble!")>]
-    member this.Ops() =
-        FSharp.toUnitTask this._Ops ()
+    member this.Ops
+        (
+            [<Optional>]
+            [<Remainder>]
+            [<Summary("The text to say afterwards.")>]
+            text: string
+        )
+        =
+        FSharp.toUnitTask this._Ops text
 
-    member private this._Ops() =
+    member private this._Ops(text: string) =
         async {
             let ctx = this.Context()
-            let text = "```
+            let ops = "```
  ██████╗ ██████╗ ███████╗██████╗ ██╗██████╗ ██╗
 ██╔═══██╗██╔══██╗██╔════╝╚════██╗██║╚════██╗██║
 ██║   ██║██████╔╝███████╗  ▄███╔╝██║  ▄███╔╝██║
@@ -28,7 +36,7 @@ type public WargameModule(commands: CommandService) =
 ╚██████╔╝██║     ███████║  ██╗   ██╗  ██╗   ██╗
  ╚═════╝ ╚═╝     ╚══════╝  ╚═╝   ╚═╝  ╚═╝   ╚═╝
 ```"
-            do! ctx.Channel.SendMessageAsync(text)
+            do! ctx.Channel.SendMessageAsync(ops + text)
                 |> Async.AwaitTask
                 |> FSharp.ensureSuccess
         }
