@@ -73,7 +73,7 @@ type public PublicModule(commands: CommandService) =
                 | None -> allHelp
         }
 
-    [<Command("ottoping")>] // temporary name until we get slash commands so we can avoid conflicts
+    [<Command("ping")>]
     [<Summary("Run a welfare check.")>]
     member this.PingPong() =
         FSharp.toUnitTask this._PingPong ()
