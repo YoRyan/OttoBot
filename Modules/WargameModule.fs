@@ -1,9 +1,7 @@
 ﻿namespace OttoBot
 
 open Discord.Commands
-open System
 open System.Runtime.InteropServices
-open System.Text
 
 type public WargameModule(commands: CommandService) =
 
