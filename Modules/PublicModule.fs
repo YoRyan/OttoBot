@@ -105,24 +105,26 @@ type public PublicModule(commands: CommandService) =
                 else if i >= 97 && i < 123 then Lower
                 else NonAlpha
 
-            let rec alternate isUpper s =
-                match s with
-                | "" -> ""
-                | _ ->
-                    let c = s.[0]
-                    let first =
-                        match c with
-                        | Upper -> if isUpper then c else char (int c + 32)
-                        | Lower -> if isUpper then char (int c - 32) else c
-                        | NonAlpha -> c
-                    let recurse =
-                        match c with
-                        | Upper | Lower -> alternate (not isUpper)
-                        | NonAlpha -> alternate isUpper
-                    string first + recurse s.[1..]
+            let alternate s =
+                let rec alternate2 isUpper accum s =
+                    match s with
+                    | "" -> accum
+                    | _ ->
+                        let c = s.[0]
+                        let first =
+                            match c with
+                            | Upper -> if isUpper then c else char (int c + 32)
+                            | Lower -> if isUpper then char (int c - 32) else c
+                            | NonAlpha -> c
+                        let upper =
+                            match c with
+                            | Upper | Lower -> not isUpper
+                            | NonAlpha -> isUpper
+                        alternate2 upper (accum + string first) s.[1..]
+                alternate2 false "" s
 
             let ctx = this.Context()
-            do! ctx.Channel.SendMessageAsync(alternate false text)
+            do! ctx.Channel.SendMessageAsync(alternate text)
                 |> Async.AwaitTask
                 |> FSharp.ensureSuccess
         }
