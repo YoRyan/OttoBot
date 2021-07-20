@@ -99,34 +99,30 @@ type public PublicModule(commands: CommandService) =
 
     member private this._SpongeBob(text: string) =
         async {
-            let isUpper c =
+            let (|Upper|Lower|NonAlpha|) c =
                 let i = int c
-                i >= 65 && i < 91
+                if i >= 65 && i < 91 then Upper
+                else if i >= 97 && i < 123 then Lower
+                else NonAlpha
 
-            let isLower c =
-                let i = int c
-                i >= 97 && i < 123
+            let rec alternate isUpper s =
+                match s with
+                | "" -> ""
+                | _ ->
+                    let c = s.[0]
+                    let first =
+                        match c with
+                        | Upper -> if isUpper then c else char (int c + 32)
+                        | Lower -> if isUpper then char (int c - 32) else c
+                        | NonAlpha -> c
+                    let recurse =
+                        match c with
+                        | Upper | Lower -> alternate (not isUpper)
+                        | NonAlpha -> alternate isUpper
+                    string first + recurse s.[1..]
 
-            let upper c =
-                if isLower c then char (int c - 32)
-                else c
-
-            let lower c =
-                if isUpper c then char (int c + 32)
-                else c
-
-            let mutable altUpper = true
-            let alternate c =
-                altUpper <- not altUpper
-                if altUpper then upper c
-                else lower c
-
-            let alternateLetters c =
-                if isUpper c || isLower c then alternate c
-                else c
-                
             let ctx = this.Context()
-            do! ctx.Channel.SendMessageAsync(String.map alternateLetters text)
+            do! ctx.Channel.SendMessageAsync(alternate false text)
                 |> Async.AwaitTask
                 |> FSharp.ensureSuccess
         }
