@@ -106,7 +106,7 @@ type public PublicModule(commands: CommandService) =
                 else NonAlpha
 
             let alternate s =
-                let rec alternate2 isUpper accum s =
+                let rec _alternate isUpper accum s =
                     match s with
                     | "" -> accum
                     | _ ->
@@ -120,8 +120,8 @@ type public PublicModule(commands: CommandService) =
                             match c with
                             | Upper | Lower -> not isUpper
                             | NonAlpha -> isUpper
-                        alternate2 upper (accum + string first) s.[1..]
-                alternate2 false "" s
+                        _alternate upper (accum + string first) s.[1..]
+                _alternate false "" s
 
             let ctx = this.Context()
             do! ctx.Channel.SendMessageAsync(alternate text)
