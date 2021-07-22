@@ -3,6 +3,7 @@
 open Discord.Commands
 open System
 open System.Runtime.InteropServices
+open System.Text
 
 
 type public PublicModule(commands: CommandService) =
@@ -106,7 +107,7 @@ type public PublicModule(commands: CommandService) =
                 else NonAlpha
 
             let alternate s =
-                let rec _alternate isUpper accum s =
+                let rec _alternate isUpper (accum: StringBuilder) s =
                     match s with
                     | "" -> accum
                     | _ ->
@@ -120,8 +121,9 @@ type public PublicModule(commands: CommandService) =
                             match c with
                             | Upper | Lower -> not isUpper
                             | NonAlpha -> isUpper
-                        _alternate upper (accum + string first) s.[1..]
-                _alternate false "" s
+                        _alternate upper (accum.Append(string first)) s.[1..]
+                let sb = _alternate false (StringBuilder()) s
+                sb.ToString()
 
             let ctx = this.Context()
             do! ctx.Channel.SendMessageAsync(alternate text)
