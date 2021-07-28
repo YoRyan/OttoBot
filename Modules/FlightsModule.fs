@@ -41,12 +41,11 @@ module FlightsModule =
                         | None -> ""
 
                     let cells = row.CssSelect("td")
-                    match cells.[4].InnerText() with
-                    | "" -> None
-                    | _ -> Some { Origin = linkText cells.[2]
-                                  Ident = linkText cells.[0]
-                                  Aircraft = linkText cells.[1]
-                                  Estimated = cells.[5].InnerText() }
+                    if cells.Length = 6 then Some { Origin = linkText cells.[2]
+                                                    Ident = linkText cells.[0]
+                                                    Aircraft = linkText cells.[1]
+                                                    Estimated = cells.[5].InnerText() }
+                    else None
                     
                 let parseAllFlights (doc: HtmlDocument) =
                     match Seq.tryHead (doc.CssSelect(".prettyTable")) with
