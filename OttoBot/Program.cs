@@ -35,7 +35,11 @@ namespace OttoBot
                     await commands.RegisterCommandsGloballyAsync();
             };
 
-            await services.GetRequiredService<CommandHandler>().InitializeAsync();
+            // Setting this flag allows one to clear the bot's globally
+            // registered commands (in Release mode) or guild-registered
+            // commands (in Debug mode with "testguild" also set).
+            if (string.IsNullOrEmpty(configuration["clearcommands"]))
+                await services.GetRequiredService<CommandHandler>().InitializeAsync();
 
             await client.LoginAsync(TokenType.Bot, configuration["token"]);
             await client.StartAsync();
