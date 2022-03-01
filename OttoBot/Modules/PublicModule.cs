@@ -37,9 +37,11 @@ namespace OttoBot.Modules
         }
 
         [SlashCommand("ops", "Avengers, assemble!")]
-        public async Task Ops()
+        public async Task Ops([Summary(description: "Your message")] string message = "")
         {
-            await FSharpInteractAsync(OttoCompute.PublicModule.ops());
+            await FSharpInteractAsync(OttoCompute.PublicModule.ops(
+                message: message
+            ));
         }
 
         [SlashCommand("flights", "Create an arrivals board for a given airport")]

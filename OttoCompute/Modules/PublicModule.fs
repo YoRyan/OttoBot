@@ -68,7 +68,7 @@ module PublicModule =
             yield Response(text = text)
         }
 
-    let ops () =
+    let ops message =
         asyncSeq {
             let text = "```
  ██████╗ ██████╗ ███████╗██████╗ ██╗██████╗ ██╗
@@ -78,7 +78,7 @@ module PublicModule =
 ╚██████╔╝██║     ███████║  ██╗   ██╗  ██╗   ██╗
  ╚═════╝ ╚═╝     ╚══════╝  ╚═╝   ╚═╝  ╚═╝   ╚═╝
 ```"
-            yield Response(text = text)
+            yield Response(text = text + message)
         }
     
     type Flight =
