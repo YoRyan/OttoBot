@@ -189,6 +189,7 @@ module PublicModule =
                 | _ -> "2"
             )
 
+            yield Defer
             let! response =
                 http.GetAsync($"https://api.wsj.net/api/kaavio/charts/big.chart?{qs}")
                 |> Async.AwaitTask
@@ -201,5 +202,5 @@ module PublicModule =
                 response.Content.ReadAsStreamAsync()
                 |> Async.AwaitTask
 
-            yield RespondWithFile(filename = filename, stream = stream)
+            yield FollowupWithFile(filename = filename, stream = stream)
         }
