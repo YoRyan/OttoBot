@@ -12,11 +12,20 @@ namespace OttoBot.Modules
             {
                 switch (interact)
                 {
-                    case Interaction.Response response:
+                    case Interaction.Respond response:
                         await RespondAsync(response.text);
                         break;
-                    case Interaction.ResponseWithFile response:
+                    case Interaction.RespondWithFile response:
                         await RespondWithFileAsync(response.stream, response.filename);
+                        break;
+                    case var x when x.IsDefer:
+                        await DeferAsync();
+                        break;
+                    case Interaction.Followup followUp:
+                        await FollowupAsync(followUp.text);
+                        break;
+                    case Interaction.FollowupWithFile followUp:
+                        await FollowupWithFileAsync(followUp.stream, followUp.filename);
                         break;
                 }
             }

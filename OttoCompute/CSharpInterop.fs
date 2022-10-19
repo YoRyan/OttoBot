@@ -3,5 +3,8 @@
 open System.IO
 
 type public Interaction =
-    | Response of text: string
-    | ResponseWithFile of filename: string * stream: Stream
+    | Respond of text: string
+    | RespondWithFile of filename: string * stream: Stream
+    | Defer
+    | Followup of text: string
+    | FollowupWithFile of filename: string * stream: Stream

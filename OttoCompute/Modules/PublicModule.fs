@@ -10,7 +10,7 @@ open System.Web
 module PublicModule =
 
     let pingPong ping =
-        asyncSeq { yield Response(text = $"Pong!\nSocket latency: {ping} ms") }
+        asyncSeq { yield Respond(text = $"Pong!\nSocket latency: {ping} ms") }
 
     let spongeBob text =
         asyncSeq {
@@ -45,13 +45,13 @@ module PublicModule =
                 let sb = _alternate false (StringBuilder()) s
                 sb.ToString()
 
-            yield Response(text = alternate text)
+            yield Respond(text = alternate text)
         }
 
     let roll sides =
         asyncSeq {
             let n = (new Random()).Next(1, sides)
-            yield Response(text = $"This {sides}-sided die rolls a **{n}**!")
+            yield Respond(text = $"This {sides}-sided die rolls a **{n}**!")
         }
 
     let orwell () =
@@ -71,7 +71,7 @@ module PublicModule =
 ⡞⠀⠀⠀⠀⠀⠀⠀⣄⠀⠀⠀⠀⠀⠀⡰⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⢧⠀⠀⠀⠀⠀⠀⠀⠈⠣⣀⠀⠀⡰⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
 
-            yield Response(text = text)
+            yield Respond(text = text)
         }
 
     let ops message =
@@ -86,7 +86,7 @@ module PublicModule =
  ╚═════╝ ╚═╝     ╚══════╝  ╚═╝   ╚═╝  ╚═╝   ╚═╝
 ```"
 
-            yield Response(text = text + message)
+            yield Respond(text = text + message)
         }
 
     type Flight =
@@ -117,18 +117,20 @@ module PublicModule =
                     None
 
             let parseAllFlights (doc: HtmlDocument) =
-                match Seq.tryHead (doc.CssSelect(".prettyTable")) with
+                match Seq.tryHead (doc.CssSelect(".airportBoard[data-type='arrivals']")) with
                 | Some table ->
                     let summary =
-                        match Seq.tryHead (table.CssSelect("h1")) with
+                        match Seq.tryHead (doc.CssSelect("h1")) with
                         | Some head -> head.InnerText()
                         | None -> ""
 
+                    // Header rows are nested in the <thead> element, while data rows are direct descendants.
                     let rows = Seq.filter (fun (el: HtmlNode) -> el.Name() = "tr") (table.Elements())
                     (summary, Seq.choose parseFlight rows)
                 | None -> ("No Data", Seq.empty)
 
-            let! doc = HtmlDocument.AsyncLoad $"https://flightaware.com/live/airport/{icao}/enroute"
+            yield Defer
+            let! doc = HtmlDocument.AsyncLoad $"https://flightaware.com/live/airport/{icao}"
             let summary, flights = parseAllFlights doc
 
             let makeTable flights =
@@ -151,7 +153,7 @@ module PublicModule =
 
             let table = makeTable (Seq.truncate numFlights flights)
 
-            yield Response(text = $"{summary}:\n{table}")
+            yield Followup(text = $"{summary}:\n{table}")
         }
 
     type ChartTimePeriod =
@@ -199,5 +201,5 @@ module PublicModule =
                 response.Content.ReadAsStreamAsync()
                 |> Async.AwaitTask
 
-            yield ResponseWithFile(filename = filename, stream = stream)
+            yield RespondWithFile(filename = filename, stream = stream)
         }
