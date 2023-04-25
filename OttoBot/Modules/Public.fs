@@ -1,19 +1,47 @@
-﻿namespace OttoCompute
+module OttoBot.Modules.Public
 
-open FSharp.Control
+open Discord.Interactions
 open FSharp.Data
+open OttoBot.Helpers
 open System
 open System.Net.Http
+open System.Runtime.InteropServices
 open System.Text
+open System.Threading.Tasks
 open System.Web
 
-module PublicModule =
+type private Flight =
+    { Origin: string
+      Ident: string
+      Aircraft: string
+      Estimated: string }
 
-    let pingPong ping =
-        asyncSeq { yield Respond(text = $"Pong!\nSocket latency: {ping} ms") }
+type ChartTimePeriod =
+    | Day = 0
+    | Week = 1
+    | Month = 2
+    | Year = 3
 
-    let spongeBob text =
-        asyncSeq {
+type Module(handler) =
+    inherit FSharpModule(handler)
+
+    member val private Rng = new Random()
+    member val private HttpClient = new HttpClient()
+
+    // It's important that the return value of each method be cast to a Task.
+    // An F# task computation expression returns a Task<unit>, which Discord.Net
+    // rejects as an invalid type signature for a command.
+
+    [<SlashCommand("ping", "Run a welfare check")>]
+    member this.PingPong() : Task =
+        task {
+            let ping = this.Context.Client.Latency
+            return! this.RespondAsync($"Pong!\nSocket latency: {ping}ms")
+        }
+
+    [<SlashCommand("bob", "Write sPoNgEbOb tExT")>]
+    member this.SpongeBob([<Summary(description = "The text to transform")>] text: string) : Task =
+        task {
             let (|Upper|Lower|NonAlpha|) c =
                 let i = int c
 
@@ -45,17 +73,21 @@ module PublicModule =
                 let sb = _alternate false (StringBuilder()) s
                 sb.ToString()
 
-            yield Respond(text = alternate text)
+            return! this.RespondAsync(alternate text)
         }
 
-    let roll sides =
-        asyncSeq {
-            let n = (new Random()).Next(1, sides)
-            yield Respond(text = $"This {sides}-sided die rolls a **{n}**!")
+    [<SlashCommand("roll", "Roll an n-sided die")>]
+    member this.Roll
+        ([<Summary(description = "The number of sides"); Optional; DefaultParameterValue(6u)>] sides: uint)
+        : Task =
+        task {
+            let n = this.Rng.Next(1, int sides)
+            return! this.RespondAsync($"This {sides}-sided die rolls a **{n}**!")
         }
 
-    let orwell () =
-        asyncSeq {
+    [<SlashCommand("1984", "Literally...")>]
+    member this.Orwell() : Task =
+        task {
             let text =
                 "**Literally...**
 ⠀⠀⠀⠀⠀⠀⠀⣠⡀⠀⠀⠀⠀⠀⠀⠀⠀⢰⠤⠤⣄⣀⡀⠀⠀⠀⠀⠀⠀⠀
@@ -71,32 +103,30 @@ module PublicModule =
 ⡞⠀⠀⠀⠀⠀⠀⠀⣄⠀⠀⠀⠀⠀⠀⡰⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⢧⠀⠀⠀⠀⠀⠀⠀⠈⠣⣀⠀⠀⡰⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
 
-            yield Respond(text = text)
+            return! this.RespondAsync(text)
         }
 
-    let ops message =
-        asyncSeq {
+    [<SlashCommand("ops", "Avengers, assemble!")>]
+    member this.Ops
+        ([<Summary(description = "Your message"); Optional; DefaultParameterValue("")>] message: string)
+        : Task =
+        task {
             let text =
                 "```
- ██████╗ ██████╗ ███████╗██████╗ ██╗██████╗ ██╗
+██████╗ ██████╗ ███████╗██████╗ ██╗██████╗ ██╗
 ██╔═══██╗██╔══██╗██╔════╝╚════██╗██║╚════██╗██║
 ██║   ██║██████╔╝███████╗  ▄███╔╝██║  ▄███╔╝██║
 ██║   ██║██╔═══╝ ╚════██║  ▀▀══╝ ╚═╝  ▀▀══╝ ╚═╝
 ╚██████╔╝██║     ███████║  ██╗   ██╗  ██╗   ██╗
- ╚═════╝ ╚═╝     ╚══════╝  ╚═╝   ╚═╝  ╚═╝   ╚═╝
+╚═════╝ ╚═╝     ╚══════╝  ╚═╝   ╚═╝  ╚═╝   ╚═╝
 ```"
 
-            yield Respond(text = text + message)
+            return! this.RespondAsync(text + message)
         }
 
-    type Flight =
-        { Origin: string
-          Ident: string
-          Aircraft: string
-          Estimated: string }
-
-    let flights icao =
-        asyncSeq {
+    [<SlashCommand("flights", "Create an arrivals board for a given airport")>]
+    member this.Flights([<Summary(description = "The ICAO code of the airport")>] icao: string) : Task =
+        task {
             let numFlights = 10
 
             let parseFlight (row: HtmlNode) =
@@ -129,41 +159,35 @@ module PublicModule =
                     (summary, Seq.choose parseFlight rows)
                 | None -> ("No Data", Seq.empty)
 
-            yield Defer
+            let! _ = this.DeferAsync()
             let! doc = HtmlDocument.AsyncLoad $"https://flightaware.com/live/airport/{icao}"
             let summary, flights = parseAllFlights doc
 
             let makeTable flights =
                 seq {
-                    yield Helpers.TableRow.Data([ "Flight"; "Type"; "From"; "ETA" ])
-                    yield Helpers.TableRow.Separator
+                    yield Data([ "Flight"; "Type"; "From"; "ETA" ])
+                    yield Separator
 
                     yield!
                         Seq.map
-                            (fun flight ->
-                                Helpers.TableRow.Data(
-                                    [ flight.Ident
-                                      flight.Aircraft
-                                      flight.Origin
-                                      flight.Estimated ]
-                                ))
+                            (fun flight -> Data([ flight.Ident; flight.Aircraft; flight.Origin; flight.Estimated ]))
                             flights
                 }
-                |> Helpers.makeTable "-" " | "
+                |> makeTable "-" " | "
 
             let table = makeTable (Seq.truncate numFlights flights)
-
-            yield Followup(text = $"{summary}:\n{table}")
+            return! this.FollowupAsync($"{summary}:\n{table}")
         }
 
-    type ChartTimePeriod =
-        | Day = 0
-        | Week = 1
-        | Month = 2
-        | Year = 3
-
-    let stonk (http: HttpClient) symbol period =
-        asyncSeq {
+    [<SlashCommand("stonk", "Tally your losses")>]
+    member this.Stonk
+        (
+            [<Summary(description = "The stock ticker; must be available on BigCharts")>] symbol: string,
+            [<Summary(description = "The time period for the chart");
+              Optional;
+              DefaultParameterValue(ChartTimePeriod.Week)>] period: ChartTimePeriod
+        ) : Task =
+        task {
             let qs = HttpUtility.ParseQueryString String.Empty
             qs.Add("symb", symbol)
             qs.Add("type", "4")
@@ -189,18 +213,14 @@ module PublicModule =
                 | _ -> "2"
             )
 
-            yield Defer
+            let! _ = this.DeferAsync()
+
             let! response =
-                http.GetAsync($"https://api.wsj.net/api/kaavio/charts/big.chart?{qs}")
+                this.HttpClient.GetAsync($"https://api.wsj.net/api/kaavio/charts/big.chart?{qs}")
                 |> Async.AwaitTask
 
             response.EnsureSuccessStatusCode() |> ignore
 
-            let filename = $"{symbol}_{DateTime.UtcNow:yyyyMMdd_HHmm}_{period}.gif"
-
-            let! stream =
-                response.Content.ReadAsStreamAsync()
-                |> Async.AwaitTask
-
-            yield FollowupWithFile(filename = filename, stream = stream)
+            let! stream = response.Content.ReadAsStreamAsync() |> Async.AwaitTask
+            return! this.FollowupWithFileAsync(stream, $"{symbol}_{DateTime.UtcNow:yyyyMMdd_HHmm}_{period}.gif")
         }
