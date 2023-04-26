@@ -180,6 +180,27 @@ type Module(handler) =
             return! this.FollowupAsync($"{summary}:\n{table}")
         }
 
+    [<SlashCommand("metar", "Check the weather for a given airport")>]
+    member this.Metar([<Summary(description = "The ICAO code of the airport")>] icao: string) : Task =
+        task {
+            do! this.DeferAsync()
+
+            let! doc = HtmlDocument.AsyncLoad $"https://www.aviationweather.gov/metar/data?ids={icao}&format=decoded"
+            let data = doc.CssSelect("tr")
+
+            let text =
+                String.concat
+                    "\n"
+                    (Seq.map
+                        (fun (row: HtmlNode) ->
+                            match row.CssSelect("td") with
+                            | [ label; info ] -> $"**{label.InnerText().Trim()}** {info.InnerText().Trim()}"
+                            | _ -> "(No data available)")
+                        data)
+
+            return! this.FollowupAsync(text)
+        }
+
     [<SlashCommand("stonk", "Tally your losses")>]
     member this.Stonk
         (
