@@ -159,7 +159,8 @@ type Module(handler) =
                     (summary, Seq.choose parseFlight rows)
                 | None -> ("No Data", Seq.empty)
 
-            let! _ = this.DeferAsync()
+            do! this.DeferAsync()
+
             let! doc = HtmlDocument.AsyncLoad $"https://flightaware.com/live/airport/{icao}"
             let summary, flights = parseAllFlights doc
 
@@ -213,7 +214,7 @@ type Module(handler) =
                 | _ -> "2"
             )
 
-            let! _ = this.DeferAsync()
+            do! this.DeferAsync()
 
             let! response =
                 this.HttpClient.GetAsync($"https://api.wsj.net/api/kaavio/charts/big.chart?{qs}")
