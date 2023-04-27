@@ -59,7 +59,18 @@ public class InteractionHandler
             var result = await _handler.ExecuteCommandAsync(context, _services);
 
             if (!result.IsSuccess)
-                await interaction.FollowupAsync($"Error: {result.ErrorReason}");
+            {
+                var error = $"Error: {result.ErrorReason}";
+                if (interaction.HasResponded)
+                {
+                    // We assume the command handler has already called DeferAsync.
+                    await interaction.FollowupAsync(error);
+                }
+                else
+                {
+                    await interaction.RespondAsync(error);
+                }
+            }
         }
         catch
         {

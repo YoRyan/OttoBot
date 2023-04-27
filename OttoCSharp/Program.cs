@@ -23,7 +23,12 @@ public class Program
             .AddSingleton(_configuration)
             .AddSingleton(_socketConfig)
             .AddSingleton<DiscordSocketClient>()
-            .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>()))
+            .AddSingleton(x => new InteractionService(x.GetRequiredService<DiscordSocketClient>(), new InteractionServiceConfig
+            {
+                // Execute commands on the gateway thread so exceptions will be caught and dealt with.
+                DefaultRunMode = RunMode.Sync,
+                ThrowOnError = true
+            }))
             .AddSingleton<InteractionHandler>()
             .BuildServiceProvider();
     }
