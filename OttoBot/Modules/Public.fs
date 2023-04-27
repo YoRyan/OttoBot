@@ -186,17 +186,16 @@ type Module(handler) =
             do! this.DeferAsync()
 
             let! doc = HtmlDocument.AsyncLoad $"https://www.aviationweather.gov/metar/data?ids={icao}&format=decoded"
-            let data = doc.CssSelect("tr")
+            let rows = doc.CssSelect("tr")
 
-            let text =
-                String.concat
-                    "\n"
-                    (Seq.map
-                        (fun (row: HtmlNode) ->
-                            match row.CssSelect("td") with
-                            | [ label; info ] -> $"**{label.InnerText().Trim()}** {info.InnerText().Trim()}"
-                            | _ -> "(No data available)")
-                        data)
+            let readCell (cell: HtmlNode) = cell.InnerText().Trim()
+
+            let readRow (row: HtmlNode) =
+                match row.CssSelect("td") with
+                | [ label; data ] -> $"**{readCell label}** {readCell data}"
+                | _ -> "(No data available)"
+
+            let text = String.concat "\n" (Seq.map readRow rows)
 
             return! this.FollowupAsync(text)
         }
