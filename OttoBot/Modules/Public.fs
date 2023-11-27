@@ -7,6 +7,7 @@ open OttoBot.Helpers
 open System
 open System.Runtime.InteropServices
 open System.Text
+open System.Text.RegularExpressions
 open System.Threading.Tasks
 
 type private Flight =
@@ -183,17 +184,10 @@ type Module(handler) =
         task {
             do! this.DeferAsync()
 
-            let! doc = HtmlDocument.AsyncLoad $"https://www.aviationweather.gov/metar/data?ids={icao}&format=decoded"
-            let rows = doc.CssSelect("tr")
+            let! response =
+                Http.AsyncRequestString($"https://aviationweather.gov/cgi-bin/data/metar.php?ids={icao}&format=decoded")
 
-            let readCell (cell: HtmlNode) = cell.InnerText().Trim()
-
-            let readRow (row: HtmlNode) =
-                match row.CssSelect("td") with
-                | [ label; data ] -> $"**{readCell label}** {readCell data}"
-                | _ -> "(No data available)"
-
-            let text = String.concat "\n" (Seq.map readRow rows)
+            let text = Regex.Replace(response, @"^  (\w+)", "  **$1**", RegexOptions.Multiline)
 
             return! this.FollowupAsync(text)
         }
