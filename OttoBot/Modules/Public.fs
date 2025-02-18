@@ -267,23 +267,27 @@ type Module(handler) =
                 with :? UriFormatException ->
                     None
 
-            let text =
-                uri
-                |> function
-                    | Some u ->
-                        let host = u.Host.ToLowerInvariant().Split(".")
+            if uri.IsNone then
+                return! this.RespondAsync "That doesn't look like a URL..."
 
-                        let newHost =
-                            match $"{host[host.Length - 2]}.{host[host.Length - 1]}" with
-                            | "reddit.com" -> "vxreddit.com"
-                            | "tiktok.com" -> "vxtiktok.com"
-                            | "x.com"
-                            | "twitter.com" -> "vxtwitter.com"
-                            | _ -> u.Host
+            // Follow any 302 redirects to the canonical URL to maximize cache hits.
 
-                        let baseUri = Uri $"https://{newHost}"
-                        Uri(baseUri, u.PathAndQuery).ToString()
-                    | None -> "That doesn't look like a URL..."
+            do! this.DeferAsync()
 
-            return! this.RespondAsync text
+            let uri = uri.Value
+            let! response = Http.AsyncRequest(uri.ToString(), [], [ ("User-Agent", "FuckSpez") ])
+
+            let trueUri = Uri response.ResponseUrl
+            let host = trueUri.Host.ToLowerInvariant().Split "."
+
+            let newHost =
+                match $"{host[host.Length - 2]}.{host[host.Length - 1]}" with
+                | "reddit.com" -> "vxreddit.com"
+                | "tiktok.com" -> "vxtiktok.com"
+                | "x.com"
+                | "twitter.com" -> "vxtwitter.com"
+                | _ -> trueUri.Host
+
+            let newUri = Uri(Uri $"https://{newHost}", trueUri.PathAndQuery)
+            return! this.FollowupAsync(newUri.ToString())
         }
