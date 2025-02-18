@@ -248,24 +248,13 @@ type Module(handler) =
     [<SlashCommand("vx", "Use a better embed for a Reddit, X, or TikTok post")>]
     member this.MakeVx([<Summary(description = "The URL to vx-ify")>] url: string) : Task =
         task {
-            let uri =
-                try
-                    Some(Uri url)
-                with :? UriFormatException ->
-                    None
-
-            if uri.IsNone then
-                return! this.RespondAsync "That doesn't look like a URL..."
-
-            // Follow any 302 redirects to the canonical URL to maximize cache hits.
-
             do! this.DeferAsync()
 
-            let uri = uri.Value
-            let! response = Http.AsyncRequest(uri.ToString(), [], [ ("User-Agent", "FuckSpez") ])
+            // Follow any 302 redirects to the canonical URL to maximize cache hits.
+            let! response = Http.AsyncRequest(url, [], [ ("User-Agent", "FuckSpez") ])
 
-            let trueUri = Uri response.ResponseUrl
-            let host = trueUri.Host.ToLowerInvariant().Split "."
+            let uri = Uri response.ResponseUrl
+            let host = uri.Host.ToLowerInvariant().Split "."
 
             let newHost =
                 match $"{host[host.Length - 2]}.{host[host.Length - 1]}" with
@@ -273,8 +262,8 @@ type Module(handler) =
                 | "tiktok.com" -> "vxtiktok.com"
                 | "x.com"
                 | "twitter.com" -> "vxtwitter.com"
-                | _ -> trueUri.Host
+                | _ -> uri.Host
 
-            let newUri = Uri(Uri $"https://{newHost}", trueUri.PathAndQuery)
+            let newUri = Uri(Uri $"https://{newHost}", uri.PathAndQuery)
             return! this.FollowupAsync(newUri.ToString())
         }
