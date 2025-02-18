@@ -35,7 +35,7 @@ type Module(handler) =
     member this.PingPong() : Task =
         task {
             let ping = this.Context.Client.Latency
-            return! this.RespondAsync($"Pong!\nSocket latency: {ping}ms")
+            return! this.RespondAsync $"Pong!\nSocket latency: {ping}ms"
         }
 
     [<SlashCommand("bob", "Write sPoNgEbOb tExT")>]
@@ -81,7 +81,7 @@ type Module(handler) =
         : Task =
         task {
             let n = this.Rng.Next(1, int sides)
-            return! this.RespondAsync($"This {sides}-sided die rolls a **{n}**!")
+            return! this.RespondAsync $"This {sides}-sided die rolls a **{n}**!"
         }
 
     [<SlashCommand("1984", "Literally...")>]
@@ -102,7 +102,7 @@ type Module(handler) =
 ⡞⠀⠀⠀⠀⠀⠀⠀⣄⠀⠀⠀⠀⠀⠀⡰⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⢧⠀⠀⠀⠀⠀⠀⠀⠈⠣⣀⠀⠀⡰⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
 
-            return! this.RespondAsync(text)
+            return! this.RespondAsync text
         }
 
     [<SlashCommand("ops", "Avengers, assemble!")>]
@@ -130,11 +130,11 @@ type Module(handler) =
 
             let parseFlight (row: HtmlNode) =
                 let linkText (el: HtmlNode) =
-                    match Seq.tryHead (el.CssSelect("a")) with
+                    match Seq.tryHead (el.CssSelect "a") with
                     | Some link -> link.InnerText()
                     | None -> ""
 
-                let cells = row.CssSelect("td")
+                let cells = row.CssSelect "td"
 
                 if cells.Length = 6 then
                     Some
@@ -146,17 +146,17 @@ type Module(handler) =
                     None
 
             let parseAllFlights (doc: HtmlDocument) =
-                match Seq.tryHead (doc.CssSelect(".airportBoard[data-type='arrivals']")) with
+                match Seq.tryHead (doc.CssSelect ".airportBoard[data-type='arrivals']") with
                 | Some table ->
                     let summary =
-                        match Seq.tryHead (doc.CssSelect("h1")) with
+                        match Seq.tryHead (doc.CssSelect "h1") with
                         | Some head -> head.InnerText()
                         | None -> ""
 
                     // Header rows are nested in the <thead> element, while data rows are direct descendants.
                     let rows = Seq.filter (fun (el: HtmlNode) -> el.Name() = "tr") (table.Elements())
-                    (summary, Seq.choose parseFlight rows)
-                | None -> ("No Data", Seq.empty)
+                    summary, Seq.choose parseFlight rows
+                | None -> "No Data", Seq.empty
 
             do! this.DeferAsync()
 
@@ -165,18 +165,18 @@ type Module(handler) =
 
             let makeTable flights =
                 seq {
-                    yield Data([ "Flight"; "Type"; "From"; "ETA" ])
+                    yield Data [ "Flight"; "Type"; "From"; "ETA" ]
                     yield Separator
 
                     yield!
                         Seq.map
-                            (fun flight -> Data([ flight.Ident; flight.Aircraft; flight.Origin; flight.Estimated ]))
+                            (fun flight -> Data [ flight.Ident; flight.Aircraft; flight.Origin; flight.Estimated ])
                             flights
                 }
                 |> makeTable "-" " | "
 
             let table = makeTable (Seq.truncate numFlights flights)
-            return! this.FollowupAsync($"{summary}:\n{table}")
+            return! this.FollowupAsync $"{summary}:\n{table}"
         }
 
     [<SlashCommand("metar", "Check the weather for a given airport")>]
@@ -185,11 +185,11 @@ type Module(handler) =
             do! this.DeferAsync()
 
             let! response =
-                Http.AsyncRequestString($"https://aviationweather.gov/cgi-bin/data/metar.php?ids={icao}&format=decoded")
+                Http.AsyncRequestString $"https://aviationweather.gov/cgi-bin/data/metar.php?ids={icao}&format=decoded"
 
             let text = Regex.Replace(response, @"^  (\w+)", "  **$1**", RegexOptions.Multiline)
 
-            return! this.FollowupAsync(text)
+            return! this.FollowupAsync text
         }
 
     [<SlashCommand("stonk", "Tally your losses")>]
@@ -207,23 +207,23 @@ type Module(handler) =
                 Async.StartChild(
                     async {
                         let qs =
-                            [ ("symb", symbol)
-                              ("type", "4")
-                              ("style", "330")
-                              ("time",
-                               match period with
-                               | ChartTimePeriod.Day -> "1"
-                               | ChartTimePeriod.Week -> "3"
-                               | ChartTimePeriod.Month -> "5"
-                               | ChartTimePeriod.Year
-                               | _ -> "8")
-                              ("freq",
-                               match period with
-                               | ChartTimePeriod.Day -> "7"
-                               | ChartTimePeriod.Week -> "8"
-                               | ChartTimePeriod.Month -> "1"
-                               | ChartTimePeriod.Year
-                               | _ -> "2") ]
+                            [ "symb", symbol
+                              "type", "4"
+                              "style", "330"
+                              "time",
+                              match period with
+                              | ChartTimePeriod.Day -> "1"
+                              | ChartTimePeriod.Week -> "3"
+                              | ChartTimePeriod.Month -> "5"
+                              | ChartTimePeriod.Year
+                              | _ -> "8"
+                              "freq",
+                              match period with
+                              | ChartTimePeriod.Day -> "7"
+                              | ChartTimePeriod.Week -> "8"
+                              | ChartTimePeriod.Month -> "1"
+                              | ChartTimePeriod.Year
+                              | _ -> "2" ]
 
                         let! response = Http.AsyncRequestStream("https://api.wsj.net/api/kaavio/charts/big.chart", qs)
                         return response.ResponseStream
@@ -234,15 +234,14 @@ type Module(handler) =
                 Async.StartChild(
                     async {
                         let! response =
-                            JsonValue.AsyncLoad(
+                            JsonValue.AsyncLoad
                                 $"https://api.wsj.net/api/autocomplete/search?entitlementToken=cecc4267a0194af89ca343805a3e57af&q={symbol}"
-                            )
 
                         return
                             match response?symbols with
                             | JsonValue.Array results ->
                                 match Array.tryHead results with
-                                | Some first -> (first?company.AsString())
+                                | Some first -> first?company.AsString()
                                 | None -> ""
                             | _ -> ""
                     }
