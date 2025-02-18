@@ -257,3 +257,33 @@ type Module(handler) =
                     $"**{symbol}**: {description}"
                 )
         }
+
+    [<SlashCommand("vx", "Use a better embed for a Reddit, X, or TikTok post")>]
+    member this.MakeVx([<Summary(description = "The URL to vx-ify")>] url: string) : Task =
+        task {
+            let uri =
+                try
+                    Some(Uri url)
+                with :? UriFormatException ->
+                    None
+
+            let text =
+                uri
+                |> function
+                    | Some u ->
+                        let host = u.Host.ToLowerInvariant().Split(".")
+
+                        let newHost =
+                            match $"{host[host.Length - 2]}.{host[host.Length - 1]}" with
+                            | "reddit.com" -> "vxreddit.com"
+                            | "tiktok.com" -> "vxtiktok.com"
+                            | "x.com"
+                            | "twitter.com" -> "vxtwitter.com"
+                            | _ -> u.Host
+
+                        let baseUri = Uri $"https://{newHost}"
+                        Uri(baseUri, u.PathAndQuery).ToString()
+                    | None -> "That doesn't look like a URL..."
+
+            return! this.RespondAsync text
+        }
