@@ -264,6 +264,7 @@ type Module(handler) =
                 | "twitter.com" -> "vxtwitter.com"
                 | _ -> uri.Host
 
-            let newUri = Uri(Uri $"https://{newHost}", uri.PathAndQuery)
+            // Query strings are mostly useless. Just drop them.
+            let newUri = Uri(Uri $"https://{newHost}", uri.AbsolutePath)
             return! this.FollowupAsync(newUri.ToString())
         }
