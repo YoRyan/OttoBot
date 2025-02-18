@@ -203,52 +203,39 @@ type Module(handler) =
         task {
             do! this.DeferAsync()
 
-            let! getChart =
-                Async.StartChild(
-                    async {
-                        let qs =
-                            [ "symb", symbol
-                              "type", "4"
-                              "style", "330"
-                              "time",
-                              match period with
-                              | ChartTimePeriod.Day -> "1"
-                              | ChartTimePeriod.Week -> "3"
-                              | ChartTimePeriod.Month -> "5"
-                              | ChartTimePeriod.Year
-                              | _ -> "8"
-                              "freq",
-                              match period with
-                              | ChartTimePeriod.Day -> "7"
-                              | ChartTimePeriod.Week -> "8"
-                              | ChartTimePeriod.Month -> "1"
-                              | ChartTimePeriod.Year
-                              | _ -> "2" ]
+            let qs =
+                [ "symb", symbol
+                  "type", "4"
+                  "style", "330"
+                  "time",
+                  match period with
+                  | ChartTimePeriod.Day -> "1"
+                  | ChartTimePeriod.Week -> "3"
+                  | ChartTimePeriod.Month -> "5"
+                  | ChartTimePeriod.Year
+                  | _ -> "8"
+                  "freq",
+                  match period with
+                  | ChartTimePeriod.Day -> "7"
+                  | ChartTimePeriod.Week -> "8"
+                  | ChartTimePeriod.Month -> "1"
+                  | ChartTimePeriod.Year
+                  | _ -> "2" ]
 
-                        let! response = Http.AsyncRequestStream("https://api.wsj.net/api/kaavio/charts/big.chart", qs)
-                        return response.ResponseStream
-                    }
-                )
+            let! response = Http.AsyncRequestStream("https://api.wsj.net/api/kaavio/charts/big.chart", qs)
+            let chartStream = response.ResponseStream
 
-            let! getDescription =
-                Async.StartChild(
-                    async {
-                        let! response =
-                            JsonValue.AsyncLoad
-                                $"https://api.wsj.net/api/autocomplete/search?entitlementToken=cecc4267a0194af89ca343805a3e57af&q={symbol}"
+            let! response =
+                JsonValue.AsyncLoad
+                    $"https://api.wsj.net/api/autocomplete/search?entitlementToken=cecc4267a0194af89ca343805a3e57af&q={symbol}"
 
-                        return
-                            match response?symbols with
-                            | JsonValue.Array results ->
-                                match Array.tryHead results with
-                                | Some first -> first?company.AsString()
-                                | None -> ""
-                            | _ -> ""
-                    }
-                )
-
-            let! chartStream = getChart
-            let! description = getDescription
+            let description =
+                match response?symbols with
+                | JsonValue.Array results ->
+                    match Array.tryHead results with
+                    | Some first -> first?company.AsString()
+                    | None -> ""
+                | _ -> ""
 
             return!
                 this.FollowupWithFileAsync(
