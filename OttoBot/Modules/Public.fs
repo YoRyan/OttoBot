@@ -241,7 +241,7 @@ type Module(handler) =
                 this.FollowupWithFileAsync(
                     chartStream,
                     $"{description}_{DateTime.UtcNow:yyyyMMdd_HHmm}_{period}.gif",
-                    $"**{symbol}**: {description}"
+                    $"**{symbol.ToUpperInvariant()}**: {description}"
                 )
         }
 
