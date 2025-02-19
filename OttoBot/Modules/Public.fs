@@ -251,7 +251,13 @@ type Module(handler) =
             do! this.DeferAsync()
 
             // Follow any 302 redirects to the canonical URL to maximize cache hits.
-            let! response = Http.AsyncRequest(url, [], [ ("User-Agent", "FuckSpez") ])
+            let! response =
+                Http.AsyncRequest(
+                    url,
+                    [],
+                    [ ("User-Agent",
+                       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 ") ]
+                )
 
             let uri = Uri response.ResponseUrl
             let host = uri.Host.ToLowerInvariant().Split "."
