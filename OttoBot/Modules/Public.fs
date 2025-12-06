@@ -1,5 +1,6 @@
 module OttoBot.Modules.Public
 
+open Discord
 open Discord.Interactions
 open FSharp.Data
 open FSharp.Data.JsonExtensions
@@ -29,7 +30,7 @@ type Module(handler) =
 
     // It's important that the return value of each method be cast to a Task.
     // An F# task computation expression returns a Task<unit>, which Discord.Net
-    // rejects as an invalid type signature for a command.
+    // rejects as an invalid type signature for a command handler.
 
     [<SlashCommand("ping", "Run a welfare check")>]
     member this.PingPong() : Task =
@@ -237,10 +238,12 @@ type Module(handler) =
                     | None -> ""
                 | _ -> ""
 
+            use attachment =
+                new FileAttachment(chartStream, $"{description}_{DateTime.UtcNow:yyyyMMdd_HHmm}_{period}.gif")
+
             return!
-                this.FollowupWithFileAsync(
-                    chartStream,
-                    $"{description}_{DateTime.UtcNow:yyyyMMdd_HHmm}_{period}.gif",
+                this.FollowupWithFilesAsync(
+                    Seq.singleton attachment,
                     $"**{symbol.ToUpperInvariant()}**: {description}"
                 )
         }
