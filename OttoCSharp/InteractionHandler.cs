@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using System.Reflection;
 
 namespace OttoCSharp;
+
 public class InteractionHandler
 {
     private readonly DiscordSocketClient _client;
@@ -27,25 +28,28 @@ public class InteractionHandler
         _handler.Log += LogAsync;
 
         // Add the public modules that inherit InteractionModuleBase<T> to the InteractionService
-        // (Protip: Comment out this line to clear the bot's registered commands.)
         await _handler.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+
+        /* Protip: Comment out the above line to clear the bot's registered commands. */
 
         // Process the InteractionCreated payloads to execute Interactions commands
         _client.InteractionCreated += HandleInteraction;
+
+        // Also process the result of the command execution.
+        _handler.InteractionExecuted += HandleInteractionExecute;
     }
 
-#pragma warning disable CS1998
-    private async Task LogAsync(LogMessage log)
-        => Console.WriteLine(log);
+    private Task LogAsync(LogMessage log)
+    {
+        Console.WriteLine(log);
+        return Task.CompletedTask;
+    }
 
     private async Task ReadyAsync()
     {
-        // Context & Slash commands can be automatically registered, but this process needs to happen after the client enters the READY state.
-        // Since Global Commands take around 1 hour to register, we should use a test guild to instantly update and test our commands.
-        if (Program.IsDebug())
-            await _handler.RegisterCommandsToGuildAsync(_configuration.GetValue<ulong>("testGuild"), true);
-        else
-            await _handler.RegisterCommandsGloballyAsync(true);
+        // Register the commands globally.
+        // alternatively you can use _handler.RegisterCommandsGloballyAsync() to register commands to a specific guild.
+        await _handler.RegisterCommandsGloballyAsync();
     }
 
     private async Task HandleInteraction(SocketInteraction interaction)
@@ -58,19 +62,17 @@ public class InteractionHandler
             // Execute the incoming command.
             var result = await _handler.ExecuteCommandAsync(context, _services);
 
+            // Due to async nature of InteractionFramework, the result here may always be success.
+            // That's why we also need to handle the InteractionExecuted event.
             if (!result.IsSuccess)
-            {
-                var error = $"Error: {result.ErrorReason}";
-                if (interaction.HasResponded)
+                switch (result.Error)
                 {
-                    // We assume the command handler has already called DeferAsync.
-                    await interaction.FollowupAsync(error);
+                    case InteractionCommandError.UnmetPrecondition:
+                        // implement
+                        break;
+                    default:
+                        break;
                 }
-                else
-                {
-                    await interaction.RespondAsync(error);
-                }
-            }
         }
         catch
         {
@@ -79,5 +81,33 @@ public class InteractionHandler
             if (interaction.Type is InteractionType.ApplicationCommand)
                 await interaction.GetOriginalResponseAsync().ContinueWith(async (msg) => await msg.Result.DeleteAsync());
         }
+    }
+
+    private Task HandleInteractionExecute(ICommandInfo commandInfo, IInteractionContext context, IResult result)
+    {
+        if (!result.IsSuccess)
+            switch (result.Error)
+            {
+                case InteractionCommandError.UnmetPrecondition:
+                    // implement
+                    break;
+                case InteractionCommandError.Exception:
+                    if (result is ExecuteResult executeResult)
+                    {
+                        var exception = executeResult.Exception.InnerException;
+                        var message = $"**Error running command:**\n```{exception?.Message}```";
+                        var interaction = context.Interaction;
+                        /* If a response was already sent, we assume it was to call DeferAsync. */
+                        if (interaction.HasResponded)
+                            interaction.FollowupAsync(message);
+                        else
+                            interaction.RespondAsync(message);
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+        return Task.CompletedTask;
     }
 }
