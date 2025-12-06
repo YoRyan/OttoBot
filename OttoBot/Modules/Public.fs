@@ -186,7 +186,7 @@ type Module(handler) =
             do! this.DeferAsync()
 
             let! response =
-                Http.AsyncRequestString $"https://aviationweather.gov/cgi-bin/data/metar.php?ids={icao}&format=decoded"
+                Http.AsyncRequestString $"https://aviationweather.gov/api/data/metar?ids={icao}&format=decoded"
 
             let text = Regex.Replace(response, @"^  (\w+)", "  **$1**", RegexOptions.Multiline)
 
