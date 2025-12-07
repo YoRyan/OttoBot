@@ -11,12 +11,6 @@ open System.Text
 open System.Text.RegularExpressions
 open System.Threading.Tasks
 
-type private Flight =
-    { Origin: string
-      Ident: string
-      Aircraft: string
-      Estimated: string }
-
 type ChartTimePeriod =
     | Day = 0
     | Week = 1
@@ -138,11 +132,13 @@ type Module(handler) =
                 let cells = row.CssSelect "td"
 
                 if cells.Length = 6 then
-                    Some
-                        { Origin = linkText cells.[2]
-                          Ident = linkText cells.[0]
-                          Aircraft = linkText cells.[1]
-                          Estimated = cells.[5].InnerText() }
+                    Some(
+                        Data
+                            [ linkText cells.[2]
+                              linkText cells.[0]
+                              linkText cells.[1]
+                              cells.[5].InnerText() ]
+                    )
                 else
                     None
 
@@ -164,19 +160,14 @@ type Module(handler) =
             let! doc = HtmlDocument.AsyncLoad $"https://flightaware.com/live/airport/{icao}"
             let summary, flights = parseAllFlights doc
 
-            let makeTable flights =
+            let table =
                 seq {
                     yield Data [ "Flight"; "Type"; "From"; "ETA" ]
                     yield Separator
-
-                    yield!
-                        Seq.map
-                            (fun flight -> Data [ flight.Ident; flight.Aircraft; flight.Origin; flight.Estimated ])
-                            flights
+                    yield! Seq.truncate numFlights flights
                 }
                 |> makeTable "-" " | "
 
-            let table = makeTable (Seq.truncate numFlights flights)
             return! this.FollowupAsync $"{summary}:\n{table}"
         }
 
