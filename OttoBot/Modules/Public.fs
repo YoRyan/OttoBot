@@ -242,10 +242,7 @@ type Module(handler) =
                 new FileAttachment(chartStream, $"{description}_{DateTime.UtcNow:yyyyMMdd_HHmm}_{period}.gif")
 
             return!
-                this.FollowupWithFilesAsync(
-                    Seq.singleton attachment,
-                    $"**{symbol.ToUpperInvariant()}**: {description}"
-                )
+                this.FollowupWithFilesAsync(Seq.singleton attachment, $"**{symbol.ToUpperInvariant()}**: {description}")
         }
 
     [<SlashCommand("vx", "Use a better embed for a Reddit, X, or TikTok post")>]
