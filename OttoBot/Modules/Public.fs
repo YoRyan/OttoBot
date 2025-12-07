@@ -17,6 +17,11 @@ type ChartTimePeriod =
     | Month = 2
     | Year = 3
 
+type AvcodesLookup =
+    | Name = 0
+    | ICAO = 1
+    | IATA = 2
+
 type Module(handler) =
     inherit FSharpModule(handler)
 
@@ -182,6 +187,98 @@ type Module(handler) =
             let text = Regex.Replace(response, @"^  (\w+)", "  **$1**", RegexOptions.Multiline)
 
             return! this.FollowupAsync text
+        }
+
+    [<SlashCommand("airport", "Look up an airport by name or code")>]
+    member this.Airport(query: string, by: AvcodesLookup) : Task =
+        task {
+            let formField =
+                match by with
+                | AvcodesLookup.ICAO -> "icaoapt"
+                | AvcodesLookup.IATA -> "iataapt"
+                | AvcodesLookup.Name
+                | _ -> "aptname"
+
+            do! this.DeferAsync()
+
+            let! response =
+                Http.AsyncRequestStream(
+                    "https://www.avcodes.co.uk/aptcoderes.asp",
+                    body = FormValues(Seq.singleton (formField, query))
+
+                )
+
+            let doc = HtmlDocument.Load response.ResponseStream
+
+            let table =
+                seq {
+                    yield Data [ "Airport"; "ICAO"; "IATA"; "Country"; "Province" ]
+                    yield Separator
+
+                    yield!
+                        doc.CssSelect "table"
+                        |> Seq.truncate 10
+                        |> Seq.map (fun t ->
+                            let cells = t.CssSelect "td"
+
+                            [ 1; 3; 2; 7; 6 ]
+                            |> Seq.map (fun i ->
+                                match cells.[i].InnerText().Split(":", 2) with
+                                | [| _label; data |] -> data
+                                | [| data |] -> data
+                                | _ -> "")
+                            |> Seq.map (fun s -> s.Trim())
+                            |> Data)
+                }
+                |> makeTable "-" " | "
+
+            return! this.FollowupAsync $"Searched for \"**{query}**\":\n{table}"
+        }
+
+    [<SlashCommand("airline", "Look up an airline by name or code")>]
+    member this.Airline(query: string, by: AvcodesLookup) : Task =
+        task {
+            let formField =
+                match by with
+                | AvcodesLookup.ICAO -> "icaoairl"
+                | AvcodesLookup.IATA -> "iataairl"
+                | AvcodesLookup.Name
+                | _ -> "airlname"
+
+            do! this.DeferAsync()
+
+            let! response =
+                Http.AsyncRequestStream(
+                    "https://www.avcodes.co.uk/airlcoderes.asp",
+                    body = FormValues(Seq.singleton (formField, query))
+
+                )
+
+            let doc = HtmlDocument.Load response.ResponseStream
+
+            let table =
+                seq {
+                    yield Data [ "Airline"; "Callsign"; "ICAO"; "IATA"; "Country" ]
+                    yield Separator
+
+                    yield!
+                        doc.CssSelect "table"
+                        |> Seq.truncate 10
+                        |> Seq.map (fun t ->
+                            let cells = t.CssSelect "td"
+
+                            [ 0; 5; 4; 3; 8 ]
+                            |> Seq.map (fun i ->
+                                match cells.[i].InnerText().Split(":", 2) with
+                                | [| _label; data |] -> data
+                                | [| data |] -> data
+                                | _ -> "")
+                            |> Seq.map (fun s -> s.Trim())
+                            |> Data)
+                }
+                |> makeTable "-" " | "
+
+            return! this.FollowupAsync $"Searched for \"**{query}**\":\n{table}"
         }
 
     [<SlashCommand("stonk", "Tally your losses")>]
