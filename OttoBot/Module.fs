@@ -1,9 +1,9 @@
-module OttoBot.Modules.Public
+namespace OttoBot
 
-open Discord
-open Discord.Interactions
 open FSharp.Data
 open FSharp.Data.JsonExtensions
+open NetCord.Rest
+open NetCord.Services.ApplicationCommands
 open OttoBot.Helpers
 open System
 open System.Runtime.InteropServices
@@ -22,24 +22,24 @@ type AvcodesLookup =
     | ICAO = 1
     | IATA = 2
 
-type Module(handler) =
-    inherit FSharpModule(handler)
+type Module() =
+    inherit ApplicationCommandModule<ApplicationCommandContext>()
 
-    member val private Rng = new Random()
+    let rng = new Random()
 
-    // It's important that the return value of each method be cast to a Task.
-    // An F# task computation expression returns a Task<unit>, which Discord.Net
-    // rejects as an invalid type signature for a command handler.
-
-    [<SlashCommand("ping", "Run a welfare check")>]
+    [<SlashCommand("ping", "Run a welfare check!")>]
     member this.PingPong() : Task =
         task {
-            let ping = this.Context.Client.Latency
-            return! this.RespondAsync $"Pong!\nSocket latency: {ping}ms"
+            let ping = this.Context.Client.Latency.Milliseconds
+
+            return!
+                $"Pong!\nSocket latency: {ping}ms"
+                |> InteractionCallback.Message
+                |> this.RespondAsync
         }
 
     [<SlashCommand("bob", "Write sPoNgEbOb tExT")>]
-    member this.SpongeBob([<Summary(description = "The text to transform")>] text: string) : Task =
+    member this.SpongeBob([<SlashCommandParameter(Description = "The text to transform")>] text: string) : Task =
         task {
             let (|Upper|Lower|NonAlpha|) c =
                 let i = int c
@@ -72,16 +72,20 @@ type Module(handler) =
                 let sb = _alternate false (StringBuilder()) s
                 sb.ToString()
 
-            return! this.RespondAsync(alternate text)
+            return! text |> alternate |> InteractionCallback.Message |> this.RespondAsync
         }
 
     [<SlashCommand("roll", "Roll an n-sided die")>]
     member this.Roll
-        ([<Summary(description = "The number of sides"); Optional; DefaultParameterValue(6u)>] sides: uint)
+        ([<SlashCommandParameter(Description = "The number of sides"); Optional; DefaultParameterValue(6u)>] sides: uint)
         : Task =
         task {
-            let n = this.Rng.Next(1, int sides)
-            return! this.RespondAsync $"This {sides}-sided die rolls a **{n}**!"
+            let n = rng.Next(1, int sides)
+
+            return!
+                $"This {sides}-sided die rolls a **{n}**!"
+                |> InteractionCallback.Message
+                |> this.RespondAsync
         }
 
     [<SlashCommand("1984", "Literally...")>]
@@ -102,12 +106,12 @@ type Module(handler) =
 ⡞⠀⠀⠀⠀⠀⠀⠀⣄⠀⠀⠀⠀⠀⠀⡰⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⢧⠀⠀⠀⠀⠀⠀⠀⠈⠣⣀⠀⠀⡰⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
 
-            return! this.RespondAsync text
+            return! text |> InteractionCallback.Message |> this.RespondAsync
         }
 
     [<SlashCommand("ops", "Avengers, assemble!")>]
     member this.Ops
-        ([<Summary(description = "Your message"); Optional; DefaultParameterValue("")>] message: string)
+        ([<SlashCommandParameter(Description = "Your message"); Optional; DefaultParameterValue("")>] message: string)
         : Task =
         task {
             let text =
@@ -120,14 +124,12 @@ type Module(handler) =
 ╚═════╝ ╚═╝     ╚══════╝  ╚═╝   ╚═╝  ╚═╝   ╚═╝
 ```"
 
-            return! this.RespondAsync(text + message)
+            return! text + message |> InteractionCallback.Message |> this.RespondAsync
         }
 
     [<SlashCommand("flights", "Create an arrivals board for a given airport")>]
-    member this.Flights([<Summary(description = "The ICAO code of the airport")>] icao: string) : Task =
+    member this.Flights([<SlashCommandParameter(Description = "The ICAO code of the airport")>] icao: string) : Task =
         task {
-            let numFlights = 10
-
             let parseFlight (row: HtmlNode) =
                 let linkText (el: HtmlNode) =
                     match Seq.tryHead (el.CssSelect "a") with
@@ -160,7 +162,7 @@ type Module(handler) =
                     summary, Seq.choose parseFlight rows
                 | None -> "No Data", Seq.empty
 
-            do! this.DeferAsync()
+            let! _ = InteractionCallback.DeferredMessage() |> this.RespondAsync
 
             let! doc = HtmlDocument.AsyncLoad $"https://flightaware.com/live/airport/{icao}"
             let summary, flights = parseAllFlights doc
@@ -169,24 +171,24 @@ type Module(handler) =
                 seq {
                     yield Data [ "Flight"; "Type"; "From"; "ETA" ]
                     yield Separator
-                    yield! Seq.truncate numFlights flights
+                    yield! Seq.truncate 10 flights
                 }
                 |> makeTable "-" " | "
 
-            return! this.FollowupAsync $"{summary}:\n{table}"
+            return! $"{summary}:\n{table}" |> this.FollowupAsync
         }
 
     [<SlashCommand("metar", "Check the weather for a given airport")>]
-    member this.Metar([<Summary(description = "The ICAO code of the airport")>] icao: string) : Task =
+    member this.Metar([<SlashCommandParameter(Description = "The ICAO code of the airport")>] icao: string) : Task =
         task {
-            do! this.DeferAsync()
+            let! _ = InteractionCallback.DeferredMessage() |> this.RespondAsync
 
             let! response =
                 Http.AsyncRequestString $"https://aviationweather.gov/api/data/metar?ids={icao}&format=decoded"
 
             let text = Regex.Replace(response, @"^  (\w+)", "  **$1**", RegexOptions.Multiline)
 
-            return! this.FollowupAsync text
+            return! text |> this.FollowupAsync
         }
 
     [<SlashCommand("airport", "Look up an airport by name or code")>]
@@ -199,7 +201,7 @@ type Module(handler) =
                 | AvcodesLookup.Name
                 | _ -> "aptname"
 
-            do! this.DeferAsync()
+            let! _ = InteractionCallback.DeferredMessage() |> this.RespondAsync
 
             let! response =
                 Http.AsyncRequestStream(
@@ -232,7 +234,7 @@ type Module(handler) =
                 }
                 |> makeTable "-" " | "
 
-            return! this.FollowupAsync $"Searched for \"**{query}**\":\n{table}"
+            return! $"Searched for \"**{query}**\":\n{table}" |> this.FollowupAsync
         }
 
     [<SlashCommand("airline", "Look up an airline by name or code")>]
@@ -245,7 +247,7 @@ type Module(handler) =
                 | AvcodesLookup.Name
                 | _ -> "airlname"
 
-            do! this.DeferAsync()
+            let! _ = InteractionCallback.DeferredMessage() |> this.RespondAsync
 
             let! response =
                 Http.AsyncRequestStream(
@@ -278,19 +280,19 @@ type Module(handler) =
                 }
                 |> makeTable "-" " | "
 
-            return! this.FollowupAsync $"Searched for \"**{query}**\":\n{table}"
+            return! $"Searched for \"**{query}**\":\n{table}" |> this.FollowupAsync
         }
 
     [<SlashCommand("stonk", "Tally your losses")>]
     member this.Stonk
         (
-            [<Summary(description = "The stock ticker; must be available on BigCharts")>] symbol: string,
-            [<Summary(description = "The time period for the chart");
+            [<SlashCommandParameter(Description = "The stock ticker; must be available on BigCharts")>] symbol: string,
+            [<SlashCommandParameter(Description = "The time period for the chart");
               Optional;
               DefaultParameterValue(ChartTimePeriod.Week)>] period: ChartTimePeriod
         ) : Task =
         task {
-            do! this.DeferAsync()
+            let! _ = InteractionCallback.DeferredMessage() |> this.RespondAsync
 
             let qs =
                 [ "symb", symbol
@@ -326,17 +328,20 @@ type Module(handler) =
                     | None -> ""
                 | _ -> ""
 
-            use attachment =
-                new FileAttachment(chartStream, $"{description}_{DateTime.UtcNow:yyyyMMdd_HHmm}_{period}.gif")
+            let attachment =
+                AttachmentProperties($"{description}_{DateTime.UtcNow:yyyyMMdd_HHmm}_{period}.gif", chartStream)
 
             return!
-                this.FollowupWithFilesAsync(Seq.singleton attachment, $"**{symbol.ToUpperInvariant()}**: {description}")
+                InteractionMessageProperties()
+                    .WithContent($"**{symbol.ToUpperInvariant()}**: {description}")
+                    .WithAttachments(Seq.singleton attachment)
+                |> this.FollowupAsync
         }
 
     [<SlashCommand("vx", "Use a better embed for a Reddit, X, or TikTok post")>]
-    member this.MakeVx([<Summary(description = "The URL to vx-ify")>] url: string) : Task =
+    member this.MakeVx([<SlashCommandParameter(Description = "The URL to vx-ify")>] url: string) : Task =
         task {
-            do! this.DeferAsync()
+            let! _ = InteractionCallback.DeferredMessage() |> this.RespondAsync
 
             // Follow any 302 redirects to the canonical URL to maximize cache hits.
             let! response =
@@ -360,5 +365,5 @@ type Module(handler) =
 
             // Query strings are mostly useless. Just drop them.
             let newUri = Uri(Uri $"https://{newHost}", uri.AbsolutePath)
-            return! this.FollowupAsync(newUri.ToString())
+            return! newUri.ToString() |> this.FollowupAsync
         }

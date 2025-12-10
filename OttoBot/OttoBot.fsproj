@@ -5,15 +5,12 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Helpers.fs" />
-    <Compile Include="Modules/Public.fs" />
+    <Compile Include="Module.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\OttoCSharp\OttoCSharp.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Discord.Net" Version="3.18.0" />
-    <PackageReference Include="Discord.Net.Interactions" Version="3.18.0" />
     <PackageReference Include="FSharp.Data" Version="6.6.0" />
+    <PackageReference Include="NetCord" Version="1.0.0-alpha.450" />
+    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.450" />
   </ItemGroup>
 </Project>
