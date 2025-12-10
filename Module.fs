@@ -141,9 +141,9 @@ type Module() =
                 if cells.Length = 6 then
                     Some(
                         Data
-                            [ linkText cells.[2]
-                              linkText cells.[0]
+                            [ linkText cells.[0]
                               linkText cells.[1]
+                              linkText cells.[2]
                               cells.[5].InnerText() ]
                     )
                 else
