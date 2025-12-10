@@ -207,7 +207,6 @@ type Module() =
                 Http.AsyncRequestStream(
                     "https://www.avcodes.co.uk/aptcoderes.asp",
                     body = FormValues(Seq.singleton (formField, query))
-
                 )
 
             let doc = HtmlDocument.Load response.ResponseStream
