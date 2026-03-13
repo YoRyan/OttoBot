@@ -14,8 +14,6 @@ open System.Threading.Tasks
 type ChartTimePeriod =
     | Day = 0
     | Week = 1
-    | Month = 2
-    | Year = 3
 
 type AvcodesLookup =
     | Name = 0
@@ -285,34 +283,27 @@ type Module() =
     [<SlashCommand("stonk", "Tally your losses")>]
     member this.Stonk
         (
-            [<SlashCommandParameter(Description = "The stock ticker; must be available on BigCharts")>] symbol: string,
+            [<SlashCommandParameter(Description = "The stock ticker; must be available on StockCharts")>] symbol: string,
             [<SlashCommandParameter(Description = "The time period for the chart");
               Optional;
-              DefaultParameterValue(ChartTimePeriod.Week)>] period: ChartTimePeriod
+              DefaultParameterValue(ChartTimePeriod.Day)>] period: ChartTimePeriod
         ) : Task =
         task {
             let! _ = InteractionCallback.DeferredMessage() |> this.RespondAsync
 
             let qs =
-                [ "symb", symbol
-                  "type", "4"
-                  "style", "330"
-                  "time",
+                [ "s", symbol
+                  "p",
                   match period with
-                  | ChartTimePeriod.Day -> "1"
-                  | ChartTimePeriod.Week -> "3"
-                  | ChartTimePeriod.Month -> "5"
-                  | ChartTimePeriod.Year
+                  | ChartTimePeriod.Day -> "D"
+                  | ChartTimePeriod.Week -> "W"
                   | _ -> "8"
-                  "freq",
-                  match period with
-                  | ChartTimePeriod.Day -> "7"
-                  | ChartTimePeriod.Week -> "8"
-                  | ChartTimePeriod.Month -> "1"
-                  | ChartTimePeriod.Year
-                  | _ -> "2" ]
+                  "b", "5"
+                  "g", "0"
+                  "i", "t4881774440c"
+                  "r", "1773428547671" ]
 
-            let! response = Http.AsyncRequestStream("https://api.wsj.net/api/kaavio/charts/big.chart", qs)
+            let! response = Http.AsyncRequestStream("https://stockcharts.com/c-sc/sc", qs)
             let chartStream = response.ResponseStream
 
             let! response =
