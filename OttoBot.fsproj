@@ -9,8 +9,8 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="FSharp.Data" Version="6.6.0" />
-    <PackageReference Include="NetCord" Version="1.0.0-alpha.450" />
-    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.450" />
+    <PackageReference Include="FSharp.Data" Version="8.1.0" />
+    <PackageReference Include="NetCord" Version="1.0.0-alpha.475" />
+    <PackageReference Include="NetCord.Services" Version="1.0.0-alpha.475" />
   </ItemGroup>
 </Project>
