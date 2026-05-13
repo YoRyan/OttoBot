@@ -1,11 +1,12 @@
-﻿open NetCord
+﻿open System
+open System.Threading.Tasks
+
+open NetCord
 open NetCord.Gateway
 open NetCord.Logging
 open NetCord.Rest
 open NetCord.Services
 open NetCord.Services.ApplicationCommands
-open System
-open System.Threading.Tasks
 
 // This file is an F# port of:
 // https://netcord.dev/guides/services/application-commands/introduction.html?tabs=bare-bones

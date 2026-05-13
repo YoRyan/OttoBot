@@ -1,15 +1,17 @@
 namespace OttoBot
 
-open FSharp.Data
-open FSharp.Data.JsonExtensions
-open NetCord.Rest
-open NetCord.Services.ApplicationCommands
-open OttoBot.Helpers
 open System
 open System.Runtime.InteropServices
 open System.Text
 open System.Text.RegularExpressions
 open System.Threading.Tasks
+
+open FSharp.Data
+open FSharp.Data.JsonExtensions
+open NetCord.Rest
+open NetCord.Services.ApplicationCommands
+
+open OttoBot.Helpers
 
 type ChartTimePeriod =
     | Day = 0
