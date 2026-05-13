@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
 COPY . .
+RUN dotnet tool restore
 RUN dotnet restore OttoBot.fsproj
 RUN dotnet publish OttoBot.fsproj -c release -o /app
 

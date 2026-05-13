@@ -8,6 +8,13 @@
         "fantomas"
       ],
       "rollForward": false
+    },
+    "paket": {
+      "version": "10.3.1",
+      "commands": [
+        "paket"
+      ],
+      "rollForward": false
     }
   }
 }

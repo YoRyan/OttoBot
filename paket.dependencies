@@ -1,0 +1,8 @@
+source https://api.nuget.org/v3/index.json
+
+storage: none
+
+nuget FSharp.Core
+nuget FSharp.Data
+nuget NetCord ~> 1 alpha
+nuget NetCord.Services ~> 1 alpha
