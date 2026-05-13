@@ -7,6 +7,9 @@ open NetCord.Services.ApplicationCommands
 open System
 open System.Threading.Tasks
 
+// This file is an F# port of:
+// https://netcord.dev/guides/services/application-commands/introduction.html?tabs=bare-bones
+
 [<EntryPoint>]
 let main args =
     task {
