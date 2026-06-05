@@ -344,18 +344,23 @@ type Module() =
                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36 ") ]
                 )
 
-            let uri = Uri response.ResponseUrl
-            let host = uri.Host.ToLowerInvariant().Split "."
+            let redirect = Uri response.ResponseUrl
 
-            let newHost =
-                match $"{host[host.Length - 2]}.{host[host.Length - 1]}" with
-                | "reddit.com" -> "vxreddit.com"
-                | "tiktok.com" -> "vxtiktok.com"
-                | "x.com"
-                | "twitter.com" -> "vxtwitter.com"
-                | _ -> uri.Host
+            let previewHost =
+                redirect.Host
+                |> _.ToLowerInvariant()
+                |> fun host ->
+                    let split = host.Split "."
+
+                    match $"{split[split.Length - 2]}.{split[split.Length - 1]}" with
+                    | "reddit.com" -> "vxreddit.com"
+                    | "tiktok.com" -> "vxtiktok.com"
+                    | "x.com"
+                    | "twitter.com" -> "vxtwitter.com"
+                    | _ -> host
 
             // Query strings are mostly useless. Just drop them.
-            let newUri = Uri(Uri $"https://{newHost}", uri.AbsolutePath)
-            return! $"<{url}> [_]({newUri.ToString()})" |> this.FollowupAsync
+            let visible = Uri(redirect, redirect.AbsolutePath)
+            let preview = Uri(Uri $"https://{previewHost}", redirect.AbsolutePath)
+            return! $"<{visible}> [_]({preview})" |> this.FollowupAsync
         }
