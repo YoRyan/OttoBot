@@ -357,5 +357,5 @@ type Module() =
 
             // Query strings are mostly useless. Just drop them.
             let newUri = Uri(Uri $"https://{newHost}", uri.AbsolutePath)
-            return! newUri.ToString() |> this.FollowupAsync
+            return! $"<{url}> [_]({newUri.ToString()})" |> this.FollowupAsync
         }
