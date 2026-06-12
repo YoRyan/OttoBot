@@ -362,5 +362,5 @@ type Module() =
             // Query strings are mostly useless. Just drop them.
             let visible = Uri(redirect, redirect.AbsolutePath)
             let preview = Uri(Uri $"https://{previewHost}", redirect.AbsolutePath)
-            return! $"<{visible}> [_]({preview})" |> this.FollowupAsync
+            return! $"<{visible}> [.]({preview})" |> this.FollowupAsync
         }
